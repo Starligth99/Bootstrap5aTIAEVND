@@ -10,24 +10,27 @@
 <body>
     <header>
         <a href="#contenido" aria-label="Ir al Contenido Principal">Saltar al contenid</a>
-        <div>
+        <div class="container">
             <h1>Valorant Champions</h1>
             <p> Todas las noticias sobre las champions de valorant</p>
         </div>
-        <nav aria -label="Navegacion Principal">
-            <ul>
-                <li><a href="#index">Inicio</a></li>
-                <li><a href="#Noticias">Noticias</a></li>
-                <li><a href="#Equipos">Equipos</a></li>
-                <li><a href="#jugadores">Jugadores</a></li>
-                <li><a href="#armas">Armas</a></li>
-                <li><a href="#Historia">Historia</a></li>
+        <nav class="navbar navbar-expand-md navbar-light bg-light" aria -label="Navegacion Principal">
+            <div class="container">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="#index">Inicio</a></li>
+                <li class="nav-item"><a class="nav-link" href="#Noticias">Noticias</a></li>
+                <li class="nav-item"><a class="nav-link" href="#Equipos">Equipos </a></li>
+                <li class="nav-item"><a class="nav-link" href="#jugadores">Jugadores</a></li>
+                <li class="nav-item"><a class="nav-link" href="#armas">Armas</a></li>
+                <li class="nav-item"><a class="nav-link" href="#Historia">Historia</a></li>
             </ul>
+            </div>
         </nav>
     </header>
     <main id="contenido">
         <!-- Seccion Hero -->
             <section id="index" aria-label="Inicio-titulo">
+                <div class="container">
                 <header>
                     <h2 id="incio-titulo">Inicio</h2>
                     <p>Bienvenido a la página oficial de Valorant Champions. Aquí encontrarás toda la información relevante sobre los torneos, equipos y jugadores destacados en el mundo de Valorant.</p>
@@ -42,7 +45,7 @@
                     <a href="#Equipos">Ver los equipos</a>
 
                 </p>
-
+                </div>
             </section>
 
             <!-- Layout de contenido + sidebar -->
@@ -75,12 +78,12 @@
                                     <li><strong>Campeón actual:</strong> Team Sentinels</li>
                                 </ul>
 
-                                <section aria-labelledby="Titulo-Dato">
+                                <section|             aria-labelledby="Titulo-Dato">
                                     <h4 id="Titulo-Dato">Dato Curioso</h4>
                                     <p>El torneo Valorant Champions ha sido uno de los eventos de esports 
                                         de más rápido crecimiento, atrayendo a millones de espectadores 
                                         en todo el mundo.</p>
-                                </section>
+                                </section|>
                             </aside>
                     </div>
                 </div>
@@ -163,8 +166,9 @@
                         <p>El torneo Valorant Champions se estableció en 2021 como la culminación del Valorant Champions Tour (VCT), reuniendo a los mejores equipos de todo el mundo para competir por el título de campeón mundial.</p>
                     </header>
             
-            <!-- Galeria -->
+                    <!-- Galeria -->
              <section id="Galeria" aria-labelledby="titulo-Galeria">
+                <div class="container"> 
                 <header>
                     <h2 id="titulo-Galeria">Galeria de Imagenes</h2>
                     <p>Explora las emocionantes imágenes de las armas de Valorant Champions.</p>
@@ -175,23 +179,24 @@
                         <img src="Img/Vandal del 2023.jpg" alt="Imagen del torneo Valorant Champions 2024">
                         <figcaption>Vandal del 2023</figcaption>
                     </figure>
-
+                    
                     <figure>
                         <img src="Img/vandal del 2021.jpg" alt="Imagen del torneo Valorant Champions 2024">
                         <figcaption>Vandal del 2021</figcaption>
                     </figure>
-
+                    
                     <figure>
                         <img src="Img/vandal del 2025.jpg" alt="Imagen del torneo Valorant Champions 2024">
                         <figcaption>Vandal del 2025</figcaption>
                     </figure>
                 </div>
-
-             </section>
+                
+                </div>
+            </section>
             
-             <!-- FAQ con ditalis y summary --> 
-             <section id="faq" aria-labelledby="titulo-faq">
-                <header>
+            <!-- FAQ con ditalis y summary --> 
+            <section id="faq" aria-labelledby="titulo-faq">
+                <header class="container">
                     <h2 id="titulo-faq">Preguntas Frecuentes</h2>
                     <details>
                         <summary>¿Cuándo se celebra el próximo torneo Valorant Champions?</summary>
@@ -209,7 +214,7 @@
              </section>
 
              <!-- Contacto -->
-                <section id="Contacto" aria-labelledby="titulo-contacto">
+                <section class="container" id="Contacto" aria-labelledby="titulo-contacto">
                     <header>
                         <h2 id="titulo-contacto">Contacto</h2>
                         <p>Si tienes alguna pregunta o deseas más información, no dudes en contactarnos a través del siguiente formulario:</p>
