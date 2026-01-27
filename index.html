@@ -16,14 +16,20 @@
         </div>
         <nav class="navbar navbar-expand-md navbar-light bg-light" aria -label="Navegacion Principal">
             <div class="container">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a class="nav-link" href="#index">Inicio</a></li>
-                <li class="nav-item"><a class="nav-link" href="#Noticias">Noticias</a></li>
-                <li class="nav-item"><a class="nav-link" href="#Equipos">Equipos </a></li>
-                <li class="nav-item"><a class="nav-link" href="#jugadores">Jugadores</a></li>
-                <li class="nav-item"><a class="nav-link" href="#armas">Armas</a></li>
-                <li class="nav-item"><a class="nav-link" href="#Historia">Historia</a></li>
-            </ul>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal" aria-controls="menuPrincipal" aria-expanded="false" aria-label="Mostrar u ocultar menu">
+                <span class="navbar-toggler-icon"></span>
+
+            </button>
+            <div class="collapse navbar-collapse" id="menuPrincipal">
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item"><a class="nav-link" href="#index">Inicio</a></li>
+                            <li class="nav-item"><a class="nav-link" href="#Noticias">Noticias</a></li>
+                            <li class="nav-item"><a class="nav-link" href="#Equipos">Equipos </a></li>
+                            <li class="nav-item"><a class="nav-link" href="#jugadores">Jugadores</a></li>
+                            <li class="nav-item"><a class="nav-link" href="#armas">Armas</a></li>
+                            <li class="nav-item"><a class="nav-link" href="#Historia">Historia</a></li>
+                        </ul>
+                    </div> 
             </div>
         </nav>
     </header>
@@ -91,6 +97,7 @@
 
             <!-- noticias -->
             <section>
+                <div class="container">
                 <header>
                     <h2 id="Noticias">Noticias</h2>
                 </header>
@@ -105,14 +112,16 @@
                         <p>Otra noticia sobre el torneo Valorant Champions.</p>
                     </article>
                 </div>
+                </div>
             </section>
 
             <!-- armas -->
              <section id="armas" aria-labelledby="titulo de armas">
+                <div class="container">
                 <header>
                     <h2 id="titulo de armas">Armas</h2>
                 </header>
-                <div>
+                <div class="container">
                     <article aria-labelledby="titulo-vandal">
                         <h3 id="titulo-vandal">Vandal</h3>
                         <p>El Vandal es una de las armas más populares en Valorant, conocida por su alta precisión y daño consistente a cualquier distancia. Es la elección preferida por muchos jugadores profesionales en el torneo Valorant Champions.</p>
@@ -123,10 +132,12 @@
                         <p>El Phantom es otra arma favorita en Valorant, apreciada por su versatilidad y capacidad para adaptarse a diferentes estilos de juego. Su silenciador integrado lo hace ideal para enfrentamientos tácticos durante los partidos del torneo.</p>
                     </article>
                 </div>
+                </div>
              </section>
              
              <!-- equipos mas relevantes -->
              <section id="Equipos" aria-labelledby="titulo-equipos">
+                <div class="container">
                 <header>
                     <h2 id="titulo-equipos">Equipos Relevantes</h2>
                 </header>
@@ -141,9 +152,11 @@
                         <p>100 Thieves ha demostrado ser un competidor formidable en el torneo, con un enfoque en la coordinación de equipo y tácticas bien ejecutadas.</p>
                     </article>
                 </div>
+                </div>
 
             <!-- jugadores -->
              <section>
+                <div class="container">
                 <header>
                     <h2 id="jugadores" aria-labelledby="Titulos jugadores"> Jugadores mas relevantes</h2>
                 </header>
@@ -157,14 +170,18 @@
                         <h3 id="titulo-derrek">Derrek</h3>
                         <p>Derrek es un jugador destacado de 100 Thieves, reconocido por su versatilidad y habilidades tácticas que han sido cruciales en varios partidos importantes del torneo.</p>
                     </article>
+                    </div>
+                    </div>
              </section>
 
              <!-- historia -->
                 <section id="Historia" aria-labelledby="titulo-historia">
+                    <div class="container">
                     <header>
                         <h2 id="titulo-historia">Historia del Torneo</h2>
                         <p>El torneo Valorant Champions se estableció en 2021 como la culminación del Valorant Champions Tour (VCT), reuniendo a los mejores equipos de todo el mundo para competir por el título de campeón mundial.</p>
                     </header>
+                    </div>
             
                     <!-- Galeria -->
              <section id="Galeria" aria-labelledby="titulo-Galeria">
