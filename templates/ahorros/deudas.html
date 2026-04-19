@@ -23,8 +23,12 @@
                 </thead>
                 <tbody>
                     {% for d in objetos %}
-                        <tr>
-                            <td><a href="{% url 'ahorros:deuda_detalle' d.pk %}">{{ d.acreedor }}</a><div class="small text-muted">{{ d.nota }}</div></td>
+                        <tr {% if d.liquidada %}class="table-light text-muted"{% endif %}>
+                            <td>
+                                <a href="{% url 'ahorros:deuda_detalle' d.pk %}">{{ d.acreedor }}</a>
+                                {% if d.liquidada %}<span class="badge bg-success ms-1">Liquidada</span>{% endif %}
+                                <div class="small text-muted">{{ d.nota }}</div>
+                            </td>
                             <td>{{ d.fecha|date:"d M Y" }}</td>
                             <td class="text-end">${{ d.monto_original|floatformat:2 }}</td>
                             <td class="text-end kpi-positive">${{ d.total_pagado|floatformat:2 }}</td>

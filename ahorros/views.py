@@ -88,8 +88,9 @@ def dashboard(request):
     # Disponible en la semana (sin contar fijos, sólo flujo semanal)
     disponible_semana = ingresos_semana - gastos_semana
 
-    # Deudas
-    deudas = list(Deuda.objects.all())
+    # Deudas: en el dashboard solo mostramos las que siguen con saldo > 0.
+    # Las liquidadas permanecen en /deudas/ como historial.
+    deudas = [d for d in Deuda.objects.all() if not d.liquidada()]
     total_deuda_original = sum(
         (d.monto_original for d in deudas), Decimal("0")
     )
