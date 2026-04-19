@@ -28,4 +28,8 @@ urlpatterns = [
         views.pago_borrar,
         name="pago_borrar",
     ),
+    # Deseos (wishlist)
+    path("deseos/", views.deseos_lista, name="deseos"),
+    path("deseos/<int:pk>/comprar/", views.deseo_comprar, name="deseo_comprar"),
+    path("deseos/<int:pk>/borrar/", views.deseo_borrar, name="deseo_borrar"),
 ]

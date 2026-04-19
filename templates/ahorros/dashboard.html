@@ -15,6 +15,7 @@
         <a class="btn btn-success" href="{% url 'ahorros:ingresos' %}">+ Ingreso</a>
         <a class="btn btn-outline-danger" href="{% url 'ahorros:gastos' %}">+ Gasto</a>
         <a class="btn btn-outline-primary" href="{% url 'ahorros:deudas' %}">+ Deuda</a>
+        <a class="btn btn-outline-warning" href="{% url 'ahorros:deseos' %}">+ Deseo</a>
     </div>
 </div>
 
@@ -67,17 +68,43 @@
                     <td class="text-end"><strong>${{ disponible_ahorro|floatformat:2 }}</strong></td>
                 </tr>
             </table>
-            {% if fijos_pendientes %}
-                <hr>
-                <h6 class="mb-2">Fijos que faltan este mes</h6>
-                <ul class="list-group list-group-flush">
-                    {% for f in fijos_pendientes %}
-                        <li class="list-group-item d-flex justify-content-between">
-                            <span>{{ f.nombre }} <small class="text-muted">(día {{ f.dia_pago }})</small></span>
-                            <span>${{ f.monto|floatformat:2 }}</span>
-                        </li>
-                    {% endfor %}
-                </ul>
+        </div>
+
+        <div class="card section-card p-3 mb-3">
+            <h5 class="mb-3">Gastos fijos</h5>
+            {% if fijos_activos %}
+                <table class="table table-sm mb-2">
+                    <thead><tr><th>Gasto</th><th class="text-center">Día</th><th class="text-end">Monto</th><th class="text-end">Estado</th></tr></thead>
+                    <tbody>
+                        {% for f in fijos_activos %}
+                            <tr>
+                                <td>{{ f.nombre }}</td>
+                                <td class="text-center">{{ f.dia_pago }}</td>
+                                <td class="text-end">${{ f.monto|floatformat:2 }}</td>
+                                <td class="text-end">
+                                    {% if f.dia_pago >= hoy.day %}
+                                        <span class="badge bg-warning text-dark">Pendiente</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Ya pasó</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <th colspan="2">Total mensual</th>
+                            <th class="text-end" colspan="2">${{ fijos_total_mes|floatformat:2 }}</th>
+                        </tr>
+                        <tr class="table-warning">
+                            <th colspan="2">Ahorrar para cubrir este mes</th>
+                            <th class="text-end" colspan="2">${{ fijos_pendientes_total|floatformat:2 }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+                <p class="small text-muted mb-0">Hoy es día {{ hoy.day }}. "Pendiente" = día de pago igual o posterior a hoy.</p>
+            {% else %}
+                <p class="text-muted mb-0">No tienes gastos fijos registrados. <a href="{% url 'ahorros:fijos' %}">Agregar uno</a>.</p>
             {% endif %}
         </div>
 
@@ -115,6 +142,36 @@
         <div class="card section-card p-3 mb-3">
             <h5 class="mb-3">Ingresos vs Gastos (mes actual)</h5>
             <canvas id="chartMes" height="160"></canvas>
+        </div>
+
+        <div class="card section-card p-3 mb-3">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h5 class="mb-0">Lista de deseos ⭐</h5>
+                <div class="text-end">
+                    <div class="small text-muted">Tienes ahorrado</div>
+                    <div class="fw-bold {% if ahorro_acumulado < 0 %}kpi-negative{% else %}kpi-positive{% endif %}">${{ ahorro_acumulado|floatformat:2 }}</div>
+                </div>
+            </div>
+            {% if deseos_resumen %}
+                <ul class="list-group list-group-flush">
+                    {% for item in deseos_resumen %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span>
+                                <strong>{{ item.obj.nombre }}</strong>
+                                <small class="text-muted">· ${{ item.obj.precio|floatformat:2 }}</small>
+                            </span>
+                            {% if item.alcanza %}
+                                <span class="badge bg-success">¡Te alcanza!</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Faltan ${{ item.falta|floatformat:2 }}</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+                <a href="{% url 'ahorros:deseos' %}" class="btn btn-sm btn-outline-warning w-100 mt-2">Ver todos los deseos</a>
+            {% else %}
+                <p class="text-muted mb-0">Aún no hay deseos. <a href="{% url 'ahorros:deseos' %}">Agrega uno</a> y el dashboard te dirá si te alcanza.</p>
+            {% endif %}
         </div>
 
         <div class="row g-3">

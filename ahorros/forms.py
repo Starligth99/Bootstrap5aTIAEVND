@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Deuda, Gasto, GastoFijo, Ingreso, PagoDeuda
+from .models import Deseo, Deuda, Gasto, GastoFijo, Ingreso, PagoDeuda
 
 
 class _BootstrapFormMixin:
@@ -53,3 +53,9 @@ class PagoDeudaForm(_BootstrapFormMixin, forms.ModelForm):
         model = PagoDeuda
         fields = ["fecha", "monto", "nota"]
         widgets = {"fecha": forms.DateInput()}
+
+
+class DeseoForm(_BootstrapFormMixin, forms.ModelForm):
+    class Meta:
+        model = Deseo
+        fields = ["nombre", "precio", "prioridad", "nota"]

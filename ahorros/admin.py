@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Deuda, Gasto, GastoFijo, Ingreso, PagoDeuda
+from .models import Deseo, Deuda, Gasto, GastoFijo, Ingreso, PagoDeuda
 
 
 @admin.register(Ingreso)
@@ -40,3 +40,10 @@ class DeudaAdmin(admin.ModelAdmin):
 class PagoDeudaAdmin(admin.ModelAdmin):
     list_display = ("fecha", "monto", "deuda")
     list_filter = ("fecha",)
+
+
+@admin.register(Deseo)
+class DeseoAdmin(admin.ModelAdmin):
+    list_display = ("nombre", "precio", "prioridad", "comprado", "fecha_compra")
+    list_filter = ("comprado", "prioridad")
+    search_fields = ("nombre", "nota")

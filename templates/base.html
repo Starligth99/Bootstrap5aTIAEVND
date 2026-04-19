@@ -33,6 +33,7 @@
                 <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'gastos' %}active{% endif %}" href="{% url 'ahorros:gastos' %}">Gastos</a></li>
                 <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'fijos' %}active{% endif %}" href="{% url 'ahorros:fijos' %}">Gastos fijos</a></li>
                 <li class="nav-item"><a class="nav-link {% if 'deuda' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'ahorros:deudas' %}">Deudas</a></li>
+                <li class="nav-item"><a class="nav-link {% if 'deseo' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'ahorros:deseos' %}">Deseos</a></li>
             </ul>
             <span class="navbar-text text-white-50 small">{{ request.user|default:"Miguel" }}</span>
         </div>

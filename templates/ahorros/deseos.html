@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Lista de deseos{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-end flex-wrap mb-4">
+    <div>
+        <h1 class="h3 mb-1">Lista de deseos ⭐</h1>
+        <p class="text-muted mb-0">Cosas que quieres comprarte. Al marcar una como comprada se registra un gasto automáticamente.</p>
+    </div>
+    <div class="card kpi-card p-3 text-end" style="min-width: 260px;">
+        <div class="label">Ahorro acumulado</div>
+        <div class="value {% if ahorro_acumulado < 0 %}kpi-negative{% else %}kpi-positive{% endif %}">
+            ${{ ahorro_acumulado|floatformat:2 }}
+        </div>
+        <small class="text-muted">ingresos − gastos − deudas pendientes</small>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card section-card p-3">
+            <h5>Agregar deseo</h5>
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% include "ahorros/_form.html" %}
+                <button class="btn btn-warning w-100" type="submit">Guardar deseo</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card section-card p-3">
+            <h5>Mis deseos</h5>
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Deseo</th>
+                        <th class="text-end">Precio</th>
+                        <th>Estado</th>
+                        <th class="text-end"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in objetos %}
+                        {% with d=item.obj %}
+                        <tr {% if d.comprado %}class="table-light text-muted"{% endif %}>
+                            <td>
+                                <strong>{{ d.nombre }}</strong>
+                                <span class="badge bg-{{ d.prioridad|yesno:"danger,warning,secondary" }} ms-1">{{ d.get_prioridad_display }}</span>
+                                {% if d.nota %}<div class="small text-muted">{{ d.nota }}</div>{% endif %}
+                            </td>
+                            <td class="text-end">${{ d.precio|floatformat:2 }}</td>
+                            <td>
+                                {% if d.comprado %}
+                                    <span class="badge bg-success">Comprado · {{ d.fecha_compra|date:"d M" }}</span>
+                                {% elif item.alcanza %}
+                                    <span class="badge bg-success">¡Te alcanza! 🎉</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Te faltan <strong>${{ item.falta|floatformat:2 }}</strong></span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if not d.comprado %}
+                                    <form method="post" action="{% url 'ahorros:deseo_comprar' d.pk %}" class="d-inline" onsubmit="return confirm('¿Marcar como comprado? Esto creará un gasto de ${{ d.precio }}.');">
+                                        {% csrf_token %}
+                                        <button class="btn btn-sm btn-success" {% if not item.alcanza %}title="No te alcanza todavía, pero puedes marcarlo igual"{% endif %}>Comprar</button>
+                                    </form>
+                                {% endif %}
+                                <form method="post" action="{% url 'ahorros:deseo_borrar' d.pk %}" class="d-inline" onsubmit="return confirm('¿Eliminar deseo?');">
+                                    {% csrf_token %}
+                                    <button class="btn btn-sm btn-outline-danger">✕</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                    {% empty %}
+                        <tr><td colspan="4" class="text-muted text-center py-3">Aún no tienes deseos registrados.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

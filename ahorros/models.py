@@ -108,3 +108,45 @@ class PagoDeuda(models.Model):
 
     def __str__(self):
         return f"{self.fecha} · ${self.monto} → {self.deuda.acreedor}"
+
+
+class Deseo(models.Model):
+    PRIORIDADES = [
+        ("alta", "Alta"),
+        ("media", "Media"),
+        ("baja", "Baja"),
+    ]
+
+    nombre = models.CharField(max_length=120)
+    precio = models.DecimalField(max_digits=12, decimal_places=2)
+    prioridad = models.CharField(
+        max_length=10, choices=PRIORIDADES, default="media"
+    )
+    nota = models.CharField(max_length=255, blank=True)
+    comprado = models.BooleanField(default=False)
+    fecha_compra = models.DateField(null=True, blank=True)
+    gasto = models.ForeignKey(
+        Gasto,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="deseos",
+        help_text="Gasto generado al marcar el deseo como comprado.",
+    )
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["comprado", "-creado_en"]
+        verbose_name = "Deseo"
+        verbose_name_plural = "Deseos"
+
+    def __str__(self):
+        return f"{self.nombre} · ${self.precio}"
+
+    def falta(self, ahorro: Decimal) -> Decimal:
+        """Monto que falta ahorrar para poder comprar este deseo."""
+        pendiente = self.precio - ahorro
+        return pendiente if pendiente > 0 else Decimal("0")
+
+    def alcanza(self, ahorro: Decimal) -> bool:
+        return ahorro >= self.precio

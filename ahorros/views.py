@@ -12,13 +12,14 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .forms import (
+    DeseoForm,
     DeudaForm,
     GastoFijoForm,
     GastoForm,
     IngresoForm,
     PagoDeudaForm,
 )
-from .models import Deuda, Gasto, GastoFijo, Ingreso, PagoDeuda
+from .models import Deseo, Deuda, Gasto, GastoFijo, Ingreso, PagoDeuda
 
 
 def _rango_semana(hoy: date) -> tuple[date, date]:
@@ -36,6 +37,19 @@ def _rango_mes(hoy: date) -> tuple[date, date]:
 
 def _sumar(qs, campo: str = "monto") -> Decimal:
     return qs.aggregate(total=Sum(campo))["total"] or Decimal("0")
+
+
+def _ahorro_acumulado() -> Decimal:
+    """Dinero que tienes disponible hoy considerando toda tu historia.
+
+    ingresos totales − gastos totales − saldos pendientes de deudas.
+    """
+    ingresos_tot = _sumar(Ingreso.objects.all())
+    gastos_tot = _sumar(Gasto.objects.all())
+    saldos_deuda = sum(
+        (d.saldo() for d in Deuda.objects.all()), Decimal("0")
+    )
+    return ingresos_tot - gastos_tot - saldos_deuda
 
 
 def dashboard(request):
@@ -82,6 +96,18 @@ def dashboard(request):
     total_deuda_saldo = sum((d.saldo() for d in deudas), Decimal("0"))
     total_deuda_pagado = total_deuda_original - total_deuda_saldo
 
+    # Ahorro acumulado (histórico) y lista de deseos
+    ahorro_acumulado = _ahorro_acumulado()
+    deseos_pendientes = list(Deseo.objects.filter(comprado=False)[:5])
+    deseos_resumen = [
+        {
+            "obj": d,
+            "alcanza": d.alcanza(ahorro_acumulado),
+            "falta": d.falta(ahorro_acumulado),
+        }
+        for d in deseos_pendientes
+    ]
+
     # Chart: ingresos vs gastos por semana del mes actual
     semanas_labels = []
     semanas_ingresos = []
@@ -121,11 +147,14 @@ def dashboard(request):
         "fijos_total_mes": fijos_total_mes,
         "fijos_pendientes_total": fijos_pendientes_total,
         "fijos_pendientes": fijos_pendientes_qs,
+        "fijos_activos": fijos_activos,
         "disponible_ahorro": disponible_ahorro,
         "deudas": deudas,
         "total_deuda_original": total_deuda_original,
         "total_deuda_saldo": total_deuda_saldo,
         "total_deuda_pagado": total_deuda_pagado,
+        "ahorro_acumulado": ahorro_acumulado,
+        "deseos_resumen": deseos_resumen,
         "ultimos_ingresos": Ingreso.objects.all()[:5],
         "ultimos_gastos": Gasto.objects.all()[:5],
         "chart_labels": json.dumps(semanas_labels),
@@ -263,3 +292,64 @@ def pago_borrar(request, pk, pago_pk):
     pago.delete()
     messages.info(request, "Pago eliminado.")
     return HttpResponseRedirect(reverse("ahorros:deuda_detalle", args=[pk]))
+
+
+# ---------- Deseos (lista de deseos / wishlist) ----------
+def deseos_lista(request):
+    if request.method == "POST":
+        form = DeseoForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Deseo agregado a la lista.")
+            return redirect("ahorros:deseos")
+    else:
+        form = DeseoForm()
+
+    ahorro = _ahorro_acumulado()
+    objetos = []
+    for d in Deseo.objects.all():
+        objetos.append(
+            {
+                "obj": d,
+                "alcanza": d.alcanza(ahorro),
+                "falta": d.falta(ahorro),
+            }
+        )
+    return render(
+        request,
+        "ahorros/deseos.html",
+        {"form": form, "objetos": objetos, "ahorro_acumulado": ahorro},
+    )
+
+
+@require_POST
+def deseo_comprar(request, pk):
+    deseo = get_object_or_404(Deseo, pk=pk)
+    if deseo.comprado:
+        messages.info(request, "Ese deseo ya estaba marcado como comprado.")
+        return redirect("ahorros:deseos")
+
+    hoy = timezone.localdate()
+    gasto = Gasto.objects.create(
+        fecha=hoy,
+        monto=deseo.precio,
+        categoria="personal",
+        descripcion=f"Deseo comprado: {deseo.nombre}",
+    )
+    deseo.comprado = True
+    deseo.fecha_compra = hoy
+    deseo.gasto = gasto
+    deseo.save()
+    messages.success(
+        request,
+        f"¡{deseo.nombre} marcado como comprado! Se registró un gasto de ${deseo.precio}.",
+    )
+    return redirect("ahorros:deseos")
+
+
+@require_POST
+def deseo_borrar(request, pk):
+    deseo = get_object_or_404(Deseo, pk=pk)
+    deseo.delete()
+    messages.info(request, "Deseo eliminado.")
+    return redirect("ahorros:deseos")
