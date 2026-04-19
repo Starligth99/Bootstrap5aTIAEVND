@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-end flex-wrap mb-4">
+    <div>
+        <h1 class="h3 mb-1">Hola 👋</h1>
+        <p class="text-muted mb-0">
+            Semana del <strong>{{ lunes|date:"d M" }}</strong> al
+            <strong>{{ domingo|date:"d M Y" }}</strong> ·
+            Mes: <strong>{{ inicio_mes|date:"F Y" }}</strong>
+        </p>
+    </div>
+    <div class="btn-group">
+        <a class="btn btn-success" href="{% url 'ahorros:ingresos' %}">+ Ingreso</a>
+        <a class="btn btn-outline-danger" href="{% url 'ahorros:gastos' %}">+ Gasto</a>
+        <a class="btn btn-outline-primary" href="{% url 'ahorros:deudas' %}">+ Deuda</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card kpi-card p-3">
+            <div class="label">Ingresos de la semana</div>
+            <div class="value kpi-positive">${{ ingresos_semana|floatformat:2 }}</div>
+            <small class="text-muted">lun {{ lunes|date:"d M" }} – dom {{ domingo|date:"d M" }}</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card kpi-card p-3">
+            <div class="label">Gastos de la semana</div>
+            <div class="value kpi-negative">${{ gastos_semana|floatformat:2 }}</div>
+            <small class="text-muted">compras y consumos</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card kpi-card p-3">
+            <div class="label">Disponible semana</div>
+            <div class="value {% if disponible_semana < 0 %}kpi-negative{% else %}kpi-positive{% endif %}">
+                ${{ disponible_semana|floatformat:2 }}
+            </div>
+            <small class="text-muted">ingresos − gastos de la semana</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card kpi-card p-3">
+            <div class="label">Disponible para ahorrar (mes)</div>
+            <div class="value {% if disponible_ahorro < 0 %}kpi-negative{% else %}kpi-positive{% endif %}">
+                ${{ disponible_ahorro|floatformat:2 }}
+            </div>
+            <small class="text-muted">ingresos − gastos − fijos pendientes</small>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card section-card p-3 mb-3">
+            <h5 class="mb-3">Resumen del mes</h5>
+            <table class="table table-sm mb-0">
+                <tr><td>Ingresos del mes</td><td class="text-end kpi-positive">${{ ingresos_mes|floatformat:2 }}</td></tr>
+                <tr><td>Gastos del mes</td><td class="text-end kpi-negative">${{ gastos_mes|floatformat:2 }}</td></tr>
+                <tr><td>Gastos fijos del mes (total)</td><td class="text-end">${{ fijos_total_mes|floatformat:2 }}</td></tr>
+                <tr class="table-warning"><td><strong>Reserva para fijos pendientes</strong></td><td class="text-end"><strong>${{ fijos_pendientes_total|floatformat:2 }}</strong></td></tr>
+                <tr class="table-light">
+                    <td><strong>Disponible para ahorrar</strong></td>
+                    <td class="text-end"><strong>${{ disponible_ahorro|floatformat:2 }}</strong></td>
+                </tr>
+            </table>
+            {% if fijos_pendientes %}
+                <hr>
+                <h6 class="mb-2">Fijos que faltan este mes</h6>
+                <ul class="list-group list-group-flush">
+                    {% for f in fijos_pendientes %}
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>{{ f.nombre }} <small class="text-muted">(día {{ f.dia_pago }})</small></span>
+                            <span>${{ f.monto|floatformat:2 }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="card section-card p-3">
+            <h5 class="mb-3">Deudas</h5>
+            {% if deudas %}
+                <table class="table table-sm mb-2">
+                    <thead><tr><th>Acreedor</th><th class="text-end">Original</th><th class="text-end">Pagado</th><th class="text-end">Saldo</th></tr></thead>
+                    <tbody>
+                        {% for d in deudas %}
+                            <tr>
+                                <td><a href="{% url 'ahorros:deuda_detalle' d.pk %}">{{ d.acreedor }}</a></td>
+                                <td class="text-end">${{ d.monto_original|floatformat:2 }}</td>
+                                <td class="text-end">${{ d.total_pagado|floatformat:2 }}</td>
+                                <td class="text-end {% if d.saldo <= 0 %}kpi-positive{% else %}kpi-negative{% endif %}">${{ d.saldo|floatformat:2 }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <th>Totales</th>
+                            <th class="text-end">${{ total_deuda_original|floatformat:2 }}</th>
+                            <th class="text-end">${{ total_deuda_pagado|floatformat:2 }}</th>
+                            <th class="text-end">${{ total_deuda_saldo|floatformat:2 }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            {% else %}
+                <p class="text-muted mb-0">No tienes deudas registradas. 🎉</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card section-card p-3 mb-3">
+            <h5 class="mb-3">Ingresos vs Gastos (mes actual)</h5>
+            <canvas id="chartMes" height="160"></canvas>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card section-card p-3">
+                    <h6 class="mb-2">Últimos ingresos</h6>
+                    {% for i in ultimos_ingresos %}
+                        <div class="d-flex justify-content-between small border-bottom py-1">
+                            <span>{{ i.fecha|date:"d M" }} · {{ i.fuente|default:"—" }}</span>
+                            <span class="kpi-positive">+${{ i.monto|floatformat:2 }}</span>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted small mb-0">Sin registros todavía.</p>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card section-card p-3">
+                    <h6 class="mb-2">Últimos gastos</h6>
+                    {% for g in ultimos_gastos %}
+                        <div class="d-flex justify-content-between small border-bottom py-1">
+                            <span>{{ g.fecha|date:"d M" }} · {{ g.get_categoria_display }}</span>
+                            <span class="kpi-negative">−${{ g.monto|floatformat:2 }}</span>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted small mb-0">Sin registros todavía.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    const labels = {{ chart_labels|safe }};
+    const ingresos = {{ chart_ingresos|safe }};
+    const gastos = {{ chart_gastos|safe }};
+    new Chart(document.getElementById('chartMes'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                { label: 'Ingresos', data: ingresos, backgroundColor: '#198754' },
+                { label: 'Gastos', data: gastos, backgroundColor: '#dc3545' }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+</script>
+{% endblock %}

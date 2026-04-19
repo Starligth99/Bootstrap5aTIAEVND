@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Deudas{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Deudas</h1>
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card section-card p-3">
+            <h5>Registrar deuda</h5>
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% include "ahorros/_form.html" %}
+                <button class="btn btn-primary w-100" type="submit">Guardar</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card section-card p-3">
+            <h5>Mis deudas</h5>
+            <table class="table table-sm">
+                <thead>
+                    <tr><th>Acreedor</th><th>Fecha</th><th class="text-end">Original</th><th class="text-end">Pagado</th><th class="text-end">Saldo</th><th></th></tr>
+                </thead>
+                <tbody>
+                    {% for d in objetos %}
+                        <tr>
+                            <td><a href="{% url 'ahorros:deuda_detalle' d.pk %}">{{ d.acreedor }}</a><div class="small text-muted">{{ d.nota }}</div></td>
+                            <td>{{ d.fecha|date:"d M Y" }}</td>
+                            <td class="text-end">${{ d.monto_original|floatformat:2 }}</td>
+                            <td class="text-end kpi-positive">${{ d.total_pagado|floatformat:2 }}</td>
+                            <td class="text-end {% if d.saldo <= 0 %}kpi-positive{% else %}kpi-negative{% endif %}">${{ d.saldo|floatformat:2 }}</td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-outline-primary" href="{% url 'ahorros:deuda_detalle' d.pk %}">Abonar</a>
+                                <form method="post" action="{% url 'ahorros:deuda_borrar' d.pk %}" class="d-inline" onsubmit="return confirm('¿Eliminar la deuda y sus pagos?');">
+                                    {% csrf_token %}
+                                    <button class="btn btn-sm btn-outline-danger">✕</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="6" class="text-muted text-center py-3">No debes nada 🎉</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

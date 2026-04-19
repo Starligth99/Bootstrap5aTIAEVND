@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Ingresos{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Ingresos</h1>
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card section-card p-3">
+            <h5>Registrar ingreso</h5>
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% include "ahorros/_form.html" %}
+                <button class="btn btn-success w-100" type="submit">Guardar</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card section-card p-3">
+            <h5>Historial</h5>
+            <table class="table table-sm">
+                <thead><tr><th>Fecha</th><th>Fuente</th><th>Nota</th><th class="text-end">Monto</th><th></th></tr></thead>
+                <tbody>
+                    {% for i in objetos %}
+                        <tr>
+                            <td>{{ i.fecha|date:"d M Y" }}</td>
+                            <td>{{ i.fuente|default:"—" }}</td>
+                            <td class="text-muted small">{{ i.nota|default:"" }}</td>
+                            <td class="text-end kpi-positive">+${{ i.monto|floatformat:2 }}</td>
+                            <td class="text-end">
+                                <form method="post" action="{% url 'ahorros:ingreso_borrar' i.pk %}" onsubmit="return confirm('¿Eliminar?');">
+                                    {% csrf_token %}
+                                    <button class="btn btn-sm btn-outline-danger">✕</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="5" class="text-muted text-center py-3">Aún no hay ingresos.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

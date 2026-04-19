@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Gastos fijos{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Gastos fijos mensuales</h1>
+<p class="text-muted">Son pagos que debes cubrir cada mes (renta, luz, internet, etc). Se usan para calcular la reserva pendiente.</p>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card section-card p-3">
+            <h5>Agregar gasto fijo</h5>
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% include "ahorros/_form.html" %}
+                <button class="btn btn-primary w-100" type="submit">Guardar</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card section-card p-3">
+            <h5>Lista</h5>
+            <table class="table table-sm">
+                <thead><tr><th>Nombre</th><th>Día</th><th>Activo</th><th class="text-end">Monto</th><th></th></tr></thead>
+                <tbody>
+                    {% for f in objetos %}
+                        <tr>
+                            <td>{{ f.nombre }}<div class="small text-muted">{{ f.nota }}</div></td>
+                            <td>{{ f.dia_pago }}</td>
+                            <td>{% if f.activo %}<span class="badge bg-success">Sí</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+                            <td class="text-end">${{ f.monto|floatformat:2 }}</td>
+                            <td class="text-end">
+                                <form method="post" action="{% url 'ahorros:fijo_borrar' f.pk %}" onsubmit="return confirm('¿Eliminar?');">
+                                    {% csrf_token %}
+                                    <button class="btn btn-sm btn-outline-danger">✕</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="5" class="text-muted text-center py-3">Aún no tienes gastos fijos.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
