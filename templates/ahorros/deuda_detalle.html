@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}{{ deuda.acreedor }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="small mb-2">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'ahorros:deudas' %}">Deudas</a></li>
+        <li class="breadcrumb-item active">{{ deuda.acreedor }}</li>
+    </ol>
+</nav>
+
+<div class="card section-card p-4 mb-4">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="label text-uppercase text-muted small">Acreedor</div>
+            <div class="h4">{{ deuda.acreedor }}</div>
+            <div class="text-muted small">Registrada el {{ deuda.fecha|date:"d M Y" }}</div>
+            {% if deuda.nota %}<div class="mt-2">{{ deuda.nota }}</div>{% endif %}
+        </div>
+        <div class="col-md-2">
+            <div class="label text-uppercase text-muted small">Original</div>
+            <div class="h4">${{ deuda.monto_original|floatformat:2 }}</div>
+        </div>
+        <div class="col-md-2">
+            <div class="label text-uppercase text-muted small">Pagado</div>
+            <div class="h4 kpi-positive">${{ deuda.total_pagado|floatformat:2 }}</div>
+        </div>
+        <div class="col-md-2">
+            <div class="label text-uppercase text-muted small">Saldo</div>
+            <div class="h4 {% if deuda.saldo <= 0 %}kpi-positive{% else %}kpi-negative{% endif %}">${{ deuda.saldo|floatformat:2 }}</div>
+        </div>
+        <div class="col-md-2 text-end">
+            {% if deuda.saldo <= 0 %}
+                <span class="badge bg-success fs-6">Liquidada</span>
+            {% else %}
+                <span class="badge bg-warning text-dark fs-6">Pendiente</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card section-card p-3">
+            <h5>Registrar abono</h5>
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% include "ahorros/_form.html" %}
+                <button class="btn btn-success w-100" type="submit">Abonar</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card section-card p-3">
+            <h5>Historial de pagos</h5>
+            <table class="table table-sm">
+                <thead><tr><th>Fecha</th><th>Nota</th><th class="text-end">Monto</th><th></th></tr></thead>
+                <tbody>
+                    {% for p in pagos %}
+                        <tr>
+                            <td>{{ p.fecha|date:"d M Y" }}</td>
+                            <td class="text-muted small">{{ p.nota|default:"—" }}</td>
+                            <td class="text-end kpi-positive">−${{ p.monto|floatformat:2 }}</td>
+                            <td class="text-end">
+                                <form method="post" action="{% url 'ahorros:pago_borrar' deuda.pk p.pk %}" onsubmit="return confirm('¿Eliminar este pago?');">
+                                    {% csrf_token %}
+                                    <button class="btn btn-sm btn-outline-danger">✕</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="4" class="text-muted text-center py-3">Sin abonos aún.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

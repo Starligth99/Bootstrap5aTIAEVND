@@ -1,0 +1,63 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Ahorros{% endblock %} · Mi sistema de ahorro</title>
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <style>
+        body { background: #f5f7fb; }
+        .navbar-brand { font-weight: 700; letter-spacing: .5px; }
+        .kpi-card { border: 0; border-radius: 1rem; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+        .kpi-card .label { font-size: .85rem; text-transform: uppercase; letter-spacing: .08em; color: #6c757d; }
+        .kpi-card .value { font-size: 1.9rem; font-weight: 700; }
+        .kpi-positive { color: #198754; }
+        .kpi-negative { color: #dc3545; }
+        .section-card { border: 0; border-radius: 1rem; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+        table.table-sm td, table.table-sm th { vertical-align: middle; }
+        .form-floating { margin-bottom: .75rem; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="{% url 'ahorros:dashboard' %}">💰 Mi Ahorro</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="nav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'ahorros:dashboard' %}">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'ingresos' %}active{% endif %}" href="{% url 'ahorros:ingresos' %}">Ingresos</a></li>
+                <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'gastos' %}active{% endif %}" href="{% url 'ahorros:gastos' %}">Gastos</a></li>
+                <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'fijos' %}active{% endif %}" href="{% url 'ahorros:fijos' %}">Gastos fijos</a></li>
+                <li class="nav-item"><a class="nav-link {% if 'deuda' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'ahorros:deudas' %}">Deudas</a></li>
+                <li class="nav-item"><a class="nav-link {% if 'deseo' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'ahorros:deseos' %}">Deseos</a></li>
+            </ul>
+            <span class="navbar-text text-white-50 small">{{ request.user|default:"Miguel" }}</span>
+        </div>
+    </div>
+</nav>
+
+<main class="container pb-5">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% block content %}{% endblock %}
+</main>
+
+<footer class="text-center text-muted small py-4">
+    Mi sistema de ahorro · {% now "Y" %}
+</footer>
+
+<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>
