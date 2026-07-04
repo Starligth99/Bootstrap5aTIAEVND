@@ -10,7 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+from typing import List
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,13 +21,40 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "t", "yes", "y", "on"}
+
+
+def _env_csv(name: str, default: List[str]) -> List[str]:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    items = [v.strip() for v in value.split(",")]
+    return [v for v in items if v]
+
+
+def _require_env(name: str, fallback: str) -> str:
+    value = os.getenv(name)
+    if value:
+        return value
+    if _env_bool("DJANGO_DEBUG", True):
+        return fallback
+    raise RuntimeError(f"Missing required environment variable: {name}")
+
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-#jb0hogamnu08dm$pbg(ntldw$pv0$^*#_s9_ny9=p^ywjxnzs'
+SECRET_KEY = _require_env(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-#jb0hogamnu08dm$pbg(ntldw$pv0$^*#_s9_ny9=p^ywjxnzs",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = _env_bool("DJANGO_DEBUG", True)
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = _env_csv("DJANGO_ALLOWED_HOSTS", ["localhost", "127.0.0.1"])
 
 
 # Application definition
@@ -120,5 +149,9 @@ STATICFILES_DIRS = [
     BASE_DIR / 'bootstrap-5.3.8-dist',
     BASE_DIR / 'styles',
 ]
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

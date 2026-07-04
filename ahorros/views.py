@@ -17,9 +17,21 @@ from .forms import (
     GastoFijoForm,
     GastoForm,
     IngresoForm,
+    NotaForm,
     PagoDeudaForm,
+    RecordatorioForm,
 )
-from .models import Deseo, Deuda, Gasto, GastoFijo, Ingreso, PagoDeuda
+from .models import (
+    Deseo,
+    Deuda,
+    Gasto,
+    GastoFijo,
+    Ingreso,
+    Nota,
+    PagoDeuda,
+    Recordatorio,
+    HistoryEntry,
+)
 
 
 def _rango_semana(hoy: date) -> tuple[date, date]:
@@ -105,6 +117,7 @@ def dashboard(request):
             "obj": d,
             "alcanza": d.alcanza(ahorro_acumulado),
             "falta": d.falta(ahorro_acumulado),
+            "meses": d.meses_para_ahorrar(ahorro_acumulado, disponible_ahorro),
         }
         for d in deseos_pendientes
     ]
@@ -134,6 +147,21 @@ def dashboard(request):
         cursor = semana_domingo + timedelta(days=1)
         idx += 1
 
+    recordatorios_pendientes = Recordatorio.objects.filter(
+        completado=False, fecha_recordatorio__lte=hoy
+    )
+    metas_activas = list(Deseo.objects.filter(comprado=False)[:3])
+    metas_deudas = [
+        {
+            "tipo": "deuda",
+            "nombre": d.acreedor,
+            "monto": d.saldo(),
+            "plazo": d.plazo_meses,
+            "estado": "Pendiente" if not d.liquidada() else "Liquidada",
+        }
+        for d in Deuda.objects.filter(monto_original__gt=0)[:3]
+    ]
+
     contexto = {
         "hoy": hoy,
         "lunes": lunes,
@@ -156,6 +184,9 @@ def dashboard(request):
         "total_deuda_pagado": total_deuda_pagado,
         "ahorro_acumulado": ahorro_acumulado,
         "deseos_resumen": deseos_resumen,
+        "recordatorios_pendientes": recordatorios_pendientes,
+        "metas_activas": metas_activas,
+        "metas_deudas": metas_deudas,
         "ultimos_ingresos": Ingreso.objects.all()[:5],
         "ultimos_gastos": Gasto.objects.all()[:5],
         "chart_labels": json.dumps(semanas_labels),
@@ -170,7 +201,14 @@ def ingresos_lista(request):
     if request.method == "POST":
         form = IngresoForm(request.POST)
         if form.is_valid():
-            form.save()
+            ingreso = form.save()
+            HistoryEntry.objects.create(
+                tipo="ingreso",
+                referencia=ingreso.fuente,
+                monto=ingreso.monto,
+                descripcion=ingreso.nota,
+                fecha=ingreso.fecha,
+            )
             messages.success(request, "Ingreso registrado.")
             return redirect("ahorros:ingresos")
     else:
@@ -193,9 +231,16 @@ def ingreso_borrar(request, pk):
 # ---------- Gastos ----------
 def gastos_lista(request):
     if request.method == "POST":
-        form = GastoForm(request.POST)
+        form = GastoForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
+            gasto = form.save()
+            HistoryEntry.objects.create(
+                tipo="gasto",
+                referencia=gasto.get_categoria_display(),
+                monto=gasto.monto,
+                descripcion=gasto.descripcion,
+                fecha=gasto.fecha,
+            )
             messages.success(request, "Gasto registrado.")
             return redirect("ahorros:gastos")
     else:
@@ -218,9 +263,16 @@ def gasto_borrar(request, pk):
 # ---------- Gastos fijos ----------
 def fijos_lista(request):
     if request.method == "POST":
-        form = GastoFijoForm(request.POST)
+        form = GastoFijoForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
+            gasto = form.save()
+            HistoryEntry.objects.create(
+                tipo="gasto_fijo",
+                referencia=gasto.nombre,
+                monto=gasto.monto,
+                descripcion=gasto.nota,
+                fecha=timezone.localdate(),
+            )
             messages.success(request, "Gasto fijo guardado.")
             return redirect("ahorros:fijos")
     else:
@@ -243,9 +295,16 @@ def fijo_borrar(request, pk):
 # ---------- Deudas ----------
 def deudas_lista(request):
     if request.method == "POST":
-        form = DeudaForm(request.POST)
+        form = DeudaForm(request.POST, request.FILES)
         if form.is_valid():
             deuda = form.save()
+            HistoryEntry.objects.create(
+                tipo="deuda",
+                referencia=deuda.acreedor,
+                monto=deuda.monto_original,
+                descripcion=deuda.nota,
+                fecha=deuda.fecha,
+            )
             messages.success(request, "Deuda registrada.")
             return redirect("ahorros:deuda_detalle", pk=deuda.pk)
     else:
@@ -265,6 +324,13 @@ def deuda_detalle(request, pk):
             pago = form.save(commit=False)
             pago.deuda = deuda
             pago.save()
+            HistoryEntry.objects.create(
+                tipo="pago_deuda",
+                referencia=deuda.acreedor,
+                monto=pago.monto,
+                descripcion=pago.nota,
+                fecha=pago.fecha,
+            )
             messages.success(
                 request,
                 f"Pago de ${pago.monto} registrado. Saldo actual: ${deuda.saldo()}.",
@@ -298,22 +364,40 @@ def pago_borrar(request, pk, pago_pk):
 # ---------- Deseos (lista de deseos / wishlist) ----------
 def deseos_lista(request):
     if request.method == "POST":
-        form = DeseoForm(request.POST)
+        form = DeseoForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
+            deseo = form.save()
+            HistoryEntry.objects.create(
+                tipo="deseo",
+                referencia=deseo.nombre,
+                monto=deseo.precio,
+                descripcion=deseo.nota,
+                fecha=timezone.localdate(),
+            )
             messages.success(request, "Deseo agregado a la lista.")
             return redirect("ahorros:deseos")
     else:
         form = DeseoForm()
 
+    hoy = timezone.localdate()
+    inicio_mes, fin_mes = _rango_mes(hoy)
+    ingresos_mes = _sumar(Ingreso.objects.filter(fecha__range=(inicio_mes, fin_mes)))
+    gastos_mes = _sumar(Gasto.objects.filter(fecha__range=(inicio_mes, fin_mes)))
+    fijos_pendientes_total = _sumar(
+        GastoFijo.objects.filter(activo=True, dia_pago__gte=hoy.day)
+    )
+    disponible_mensual = ingresos_mes - gastos_mes - fijos_pendientes_total
+
     ahorro = _ahorro_acumulado()
+    deseos = Deseo.objects.all()
     objetos = []
-    for d in Deseo.objects.all():
+    for d in deseos:
         objetos.append(
             {
                 "obj": d,
                 "alcanza": d.alcanza(ahorro),
                 "falta": d.falta(ahorro),
+                "meses": d.meses_para_ahorrar(ahorro, disponible_mensual),
             }
         )
     return render(
@@ -341,6 +425,13 @@ def deseo_comprar(request, pk):
     deseo.fecha_compra = hoy
     deseo.gasto = gasto
     deseo.save()
+    HistoryEntry.objects.create(
+        tipo="gasto",
+        referencia=deseo.nombre,
+        monto=gasto.monto,
+        descripcion=gasto.descripcion,
+        fecha=gasto.fecha,
+    )
     messages.success(
         request,
         f"¡{deseo.nombre} marcado como comprado! Se registró un gasto de ${deseo.precio}.",
@@ -354,3 +445,73 @@ def deseo_borrar(request, pk):
     deseo.delete()
     messages.info(request, "Deseo eliminado.")
     return redirect("ahorros:deseos")
+
+
+def notas_lista(request):
+    if request.method == "POST":
+        form = NotaForm(request.POST)
+        if form.is_valid():
+            nota = form.save()
+            HistoryEntry.objects.create(
+                tipo="nota",
+                referencia=nota.titulo,
+                descripcion=nota.contenido[:255],
+                fecha=timezone.localdate(),
+            )
+            messages.success(request, "Nota guardada.")
+            return redirect("ahorros:notas")
+    else:
+        form = NotaForm()
+    return render(
+        request,
+        "ahorros/notas.html",
+        {"form": form, "objetos": Nota.objects.all()},
+    )
+
+
+@require_POST
+def nota_borrar(request, pk):
+    nota = get_object_or_404(Nota, pk=pk)
+    nota.delete()
+    messages.info(request, "Nota eliminada.")
+    return redirect("ahorros:notas")
+
+
+def recordatorios_lista(request):
+    if request.method == "POST":
+        form = RecordatorioForm(request.POST)
+        if form.is_valid():
+            recordatorio = form.save()
+            HistoryEntry.objects.create(
+                tipo="recordatorio",
+                referencia=recordatorio.titulo,
+                descripcion=recordatorio.descripcion[:255],
+                fecha=recordatorio.fecha_recordatorio,
+            )
+            messages.success(request, "Recordatorio guardado.")
+            return redirect("ahorros:recordatorios")
+    else:
+        form = RecordatorioForm()
+    recordatorios = Recordatorio.objects.all()
+    return render(
+        request,
+        "ahorros/recordatorios.html",
+        {"form": form, "objetos": recordatorios},
+    )
+
+
+@require_POST
+def recordatorio_completar(request, pk):
+    recordatorio = get_object_or_404(Recordatorio, pk=pk)
+    recordatorio.completado = True
+    recordatorio.save()
+    messages.success(request, "Recordatorio marcado como completado.")
+    return redirect("ahorros:recordatorios")
+
+
+def historial(request):
+    return render(
+        request,
+        "ahorros/historial.html",
+        {"objetos": HistoryEntry.objects.all()},
+    )

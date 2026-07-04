@@ -31,5 +31,9 @@ urlpatterns = [
     # Deseos (wishlist)
     path("deseos/", views.deseos_lista, name="deseos"),
     path("deseos/<int:pk>/comprar/", views.deseo_comprar, name="deseo_comprar"),
-    path("deseos/<int:pk>/borrar/", views.deseo_borrar, name="deseo_borrar"),
-]
+    path("deseos/<int:pk>/borrar/", views.deseo_borrar, name="deseo_borrar"),    # Notas y recordatorios
+    path("notas/", views.notas_lista, name="notas"),
+    path("notas/<int:pk>/borrar/", views.nota_borrar, name="nota_borrar"),
+    path("recordatorios/", views.recordatorios_lista, name="recordatorios"),
+    path("recordatorios/<int:pk>/completar/", views.recordatorio_completar, name="recordatorio_completar"),
+    path("historial/", views.historial, name="historial"),]

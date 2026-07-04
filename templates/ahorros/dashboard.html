@@ -19,6 +19,28 @@
     </div>
 </div>
 
+    <div class="row g-3 mb-4">
+        <div class="col-12">
+            <div class="card section-card p-3">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
+                    <div>
+                        <h5 class="mb-2">Dashboards rápidos</h5>
+                        <p class="text-muted mb-0">Accede a tus métricas clave sin perder tiempo.</p>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a class="btn btn-outline-primary btn-sm" href="{% url 'ahorros:dashboard' %}">Resumen</a>
+                        <a class="btn btn-outline-secondary btn-sm" href="{% url 'ahorros:gastos' %}">Gastos</a>
+                        <a class="btn btn-outline-secondary btn-sm" href="{% url 'ahorros:deudas' %}">Deudas</a>
+                        <a class="btn btn-outline-secondary btn-sm" href="{% url 'ahorros:deseos' %}">Deseos</a>
+                        <a class="btn btn-outline-secondary btn-sm" href="{% url 'ahorros:notas' %}">Notas</a>
+                        <a class="btn btn-outline-secondary btn-sm" href="{% url 'ahorros:recordatorios' %}">Recordatorios</a>
+                        <a class="btn btn-outline-secondary btn-sm" href="{% url 'ahorros:historial' %}">Historial</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <div class="card kpi-card p-3">

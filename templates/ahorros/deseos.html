@@ -20,7 +20,7 @@
     <div class="col-lg-4">
         <div class="card section-card p-3">
             <h5>Agregar deseo</h5>
-            <form method="post" novalidate>
+            <form method="post" enctype="multipart/form-data" novalidate>
                 {% csrf_token %}
                 {% include "ahorros/_form.html" %}
                 <button class="btn btn-warning w-100" type="submit">Guardar deseo</button>
@@ -46,7 +46,17 @@
                             <td>
                                 <strong>{{ d.nombre }}</strong>
                                 <span class="badge bg-{{ d.prioridad|yesno:"danger,warning,secondary" }} ms-1">{{ d.get_prioridad_display }}</span>
-                                {% if d.nota %}<div class="small text-muted">{{ d.nota }}</div>{% endif %}
+                                <div class="mt-2">
+                                    {% if d.nota %}<div class="small text-muted">{{ d.nota }}</div>{% endif %}
+                                    {% if d.imagen %}
+                                        <div class="mt-2 d-flex align-items-start gap-2">
+                                            <img src="{{ d.imagen.url }}" class="img-fluid rounded" style="max-height:120px; max-width:160px; object-fit:cover;" alt="Imagen del deseo">
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                {% if not d.comprado %}
+                                    <div class="small text-muted mt-2">Necesitas {{ item.meses }} meses con tu ahorro mensual.</div>
+                                {% endif %}
                             </td>
                             <td class="text-end">${{ d.precio|floatformat:2 }}</td>
                             <td>

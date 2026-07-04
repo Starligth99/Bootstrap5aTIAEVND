@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Deseo, Deuda, Gasto, GastoFijo, Ingreso, PagoDeuda
+from .models import Deseo, Deuda, Gasto, GastoFijo, Ingreso, Nota, Recordatorio, PagoDeuda
 
 
 class _BootstrapFormMixin:
@@ -18,44 +18,85 @@ class _BootstrapFormMixin:
             else:
                 widget.attrs["class"] = (css + " form-control").strip()
             if isinstance(widget, forms.DateInput):
-                widget.input_type = "date"
+                widget.input_type = "text"
+                widget.attrs.setdefault("placeholder", "dd/mm/yyyy")
+                widget.attrs.setdefault("inputmode", "numeric")
+                widget.attrs.setdefault("pattern", r"\\d{2}/\\d{2}/\\d{4}")
 
 
 class IngresoForm(_BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = Ingreso
         fields = ["fecha", "monto", "fuente", "nota"]
-        widgets = {"fecha": forms.DateInput()}
+        widgets = {
+            "fecha": forms.DateInput(
+                format="%d/%m/%Y",
+                attrs={"placeholder": "dd/mm/yyyy", "inputmode": "numeric"},
+            )
+        }
 
 
 class GastoForm(_BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = Gasto
-        fields = ["fecha", "monto", "categoria", "descripcion"]
-        widgets = {"fecha": forms.DateInput()}
+        fields = ["fecha", "monto", "categoria", "descripcion", "evidencia"]
+        widgets = {
+            "fecha": forms.DateInput(
+                format="%d/%m/%Y",
+                attrs={"placeholder": "dd/mm/yyyy", "inputmode": "numeric"},
+            )
+        }
 
 
 class GastoFijoForm(_BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = GastoFijo
-        fields = ["nombre", "monto", "dia_pago", "activo", "nota"]
+        fields = ["nombre", "monto", "dia_pago", "activo", "nota", "evidencia"]
 
 
 class DeudaForm(_BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = Deuda
-        fields = ["acreedor", "monto_original", "fecha", "nota"]
-        widgets = {"fecha": forms.DateInput()}
+        fields = ["acreedor", "monto_original", "fecha", "plazo_meses", "nota", "evidencia"]
+        widgets = {
+            "fecha": forms.DateInput(
+                format="%d/%m/%Y",
+                attrs={"placeholder": "dd/mm/yyyy", "inputmode": "numeric"},
+            )
+        }
 
 
 class PagoDeudaForm(_BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = PagoDeuda
         fields = ["fecha", "monto", "nota"]
-        widgets = {"fecha": forms.DateInput()}
+        widgets = {
+            "fecha": forms.DateInput(
+                format="%d/%m/%Y",
+                attrs={"placeholder": "dd/mm/yyyy", "inputmode": "numeric"},
+            )
+        }
 
 
 class DeseoForm(_BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = Deseo
-        fields = ["nombre", "precio", "prioridad", "nota"]
+        fields = ["nombre", "precio", "prioridad", "nota", "imagen"]
+
+
+class NotaForm(_BootstrapFormMixin, forms.ModelForm):
+    class Meta:
+        model = Nota
+        fields = ["titulo", "contenido"]
+
+
+class RecordatorioForm(_BootstrapFormMixin, forms.ModelForm):
+    class Meta:
+        model = Recordatorio
+        fields = ["titulo", "descripcion", "fecha_recordatorio"]
+        widgets = {
+            "fecha_recordatorio": forms.DateInput(
+                format="%d/%m/%Y",
+                attrs={"placeholder": "dd/mm/yyyy", "inputmode": "numeric"},
+            )
+        }

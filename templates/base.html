@@ -34,8 +34,16 @@
                 <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'fijos' %}active{% endif %}" href="{% url 'ahorros:fijos' %}">Gastos fijos</a></li>
                 <li class="nav-item"><a class="nav-link {% if 'deuda' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'ahorros:deudas' %}">Deudas</a></li>
                 <li class="nav-item"><a class="nav-link {% if 'deseo' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'ahorros:deseos' %}">Deseos</a></li>
+                <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'notas' %}active{% endif %}" href="{% url 'ahorros:notas' %}">Notas</a></li>
+                <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'recordatorios' %}active{% endif %}" href="{% url 'ahorros:recordatorios' %}">Recordatorios</a></li>
+                <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'historial' %}active{% endif %}" href="{% url 'ahorros:historial' %}">Historial</a></li>
             </ul>
-            <span class="navbar-text text-white-50 small">{{ request.user|default:"Miguel" }}</span>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-outline-light btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#quickAccess" aria-controls="quickAccess">
+                    Accesos rápidos
+                </button>
+                <span class="navbar-text text-white-50 small">{{ request.user|default:"Miguel" }}</span>
+            </div>
         </div>
     </div>
 </nav>
@@ -56,6 +64,26 @@
 <footer class="text-center text-muted small py-4">
     Mi sistema de ahorro · {% now "Y" %}
 </footer>
+
+<div class="offcanvas offcanvas-end" tabindex="-1" id="quickAccess" aria-labelledby="quickAccessLabel">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="quickAccessLabel">Accesos rápidos</h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div class="list-group">
+            <a class="list-group-item list-group-item-action" href="{% url 'ahorros:dashboard' %}">Dashboard general</a>
+            <a class="list-group-item list-group-item-action" href="{% url 'ahorros:ingresos' %}">Registrar ingresos</a>
+            <a class="list-group-item list-group-item-action" href="{% url 'ahorros:gastos' %}">Registrar gastos</a>
+            <a class="list-group-item list-group-item-action" href="{% url 'ahorros:fijos' %}">Gastos fijos</a>
+            <a class="list-group-item list-group-item-action" href="{% url 'ahorros:deudas' %}">Deudas</a>
+            <a class="list-group-item list-group-item-action" href="{% url 'ahorros:deseos' %}">Deseos</a>
+            <a class="list-group-item list-group-item-action" href="{% url 'ahorros:notas' %}">Notas</a>
+            <a class="list-group-item list-group-item-action" href="{% url 'ahorros:recordatorios' %}">Recordatorios</a>
+            <a class="list-group-item list-group-item-action" href="{% url 'ahorros:historial' %}">Historial</a>
+        </div>
+    </div>
+</div>
 
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
 {% block extra_js %}{% endblock %}

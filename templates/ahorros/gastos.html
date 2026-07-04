@@ -7,7 +7,7 @@
     <div class="col-lg-4">
         <div class="card section-card p-3">
             <h5>Registrar gasto</h5>
-            <form method="post" novalidate>
+            <form method="post" enctype="multipart/form-data" novalidate>
                 {% csrf_token %}
                 {% include "ahorros/_form.html" %}
                 <button class="btn btn-danger w-100" type="submit">Guardar</button>
@@ -24,7 +24,14 @@
                         <tr>
                             <td>{{ g.fecha|date:"d M Y" }}</td>
                             <td><span class="badge bg-secondary">{{ g.get_categoria_display }}</span></td>
-                            <td class="text-muted small">{{ g.descripcion|default:"—" }}</td>
+                            <td>
+                                <div class="text-muted small">{{ g.descripcion|default:"—" }}</div>
+                                {% if g.evidencia %}
+                                    <div class="mt-2">
+                                        <img src="{{ g.evidencia.url }}" class="img-fluid rounded" style="max-height:120px; max-width:180px; object-fit:cover;" alt="Evidencia del gasto">
+                                    </div>
+                                {% endif %}
+                            </td>
                             <td class="text-end kpi-negative">−${{ g.monto|floatformat:2 }}</td>
                             <td class="text-end">
                                 <form method="post" action="{% url 'ahorros:gasto_borrar' g.pk %}" onsubmit="return confirm('¿Eliminar?');">

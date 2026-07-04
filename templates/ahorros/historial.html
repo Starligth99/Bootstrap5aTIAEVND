@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Historial{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Historial completo</h1>
+<div class="card section-card p-3">
+    <table class="table table-sm align-middle mb-0">
+        <thead>
+            <tr><th>Fecha</th><th>Tipo</th><th>Referencia</th><th>Descripción</th><th class="text-end">Monto</th></tr>
+        </thead>
+        <tbody>
+            {% for item in objetos %}
+                <tr>
+                    <td>{{ item.fecha|date:"d M Y" }}</td>
+                    <td>{{ item.get_tipo_display }}</td>
+                    <td>{{ item.referencia|default:"-" }}</td>
+                    <td class="small text-muted">{{ item.descripcion|default:"-" }}</td>
+                    <td class="text-end">{% if item.monto is not None %}${{ item.monto|floatformat:2 }}{% else %}-{% endif %}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="5" class="text-muted text-center py-3">Aún no hay entradas de historial.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

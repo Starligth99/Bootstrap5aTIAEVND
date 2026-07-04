@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, ROUND_UP
 
 from django.db import models
 from django.db.models import Sum
@@ -34,6 +34,7 @@ class GastoFijo(models.Model):
     )
     activo = models.BooleanField(default=True)
     nota = models.CharField(max_length=255, blank=True)
+    evidencia = models.ImageField(upload_to="evidencia/fijos/", blank=True, null=True)
 
     class Meta:
         ordering = ["dia_pago", "nombre"]
@@ -58,6 +59,7 @@ class Gasto(models.Model):
     monto = models.DecimalField(max_digits=12, decimal_places=2)
     categoria = models.CharField(max_length=20, choices=CATEGORIAS, default="otro")
     descripcion = models.CharField(max_length=255, blank=True)
+    evidencia = models.ImageField(upload_to="evidencia/gastos/", blank=True, null=True)
     creado_en = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -73,7 +75,9 @@ class Deuda(models.Model):
     acreedor = models.CharField(max_length=100, help_text="A quién le debes.")
     monto_original = models.DecimalField(max_digits=12, decimal_places=2)
     fecha = models.DateField(default=timezone.localdate)
+    plazo_meses = models.PositiveSmallIntegerField(default=3, help_text="Cuántos meses planeas pagar esta deuda.")
     nota = models.CharField(max_length=255, blank=True)
+    evidencia = models.ImageField(upload_to="evidencia/deudas/", blank=True, null=True)
 
     class Meta:
         ordering = ["-fecha", "acreedor"]
@@ -123,6 +127,7 @@ class Deseo(models.Model):
         max_length=10, choices=PRIORIDADES, default="media"
     )
     nota = models.CharField(max_length=255, blank=True)
+    imagen = models.ImageField(upload_to="evidencia/deseos/", blank=True, null=True)
     comprado = models.BooleanField(default=False)
     fecha_compra = models.DateField(null=True, blank=True)
     gasto = models.ForeignKey(
@@ -150,3 +155,69 @@ class Deseo(models.Model):
 
     def alcanza(self, ahorro: Decimal) -> bool:
         return ahorro >= self.precio
+
+    def meses_para_ahorrar(self, ahorro_actual: Decimal, disponible_mensual: Decimal) -> int:
+        if disponible_mensual <= Decimal("0"):
+            return 0
+        faltante = self.precio - ahorro_actual
+        if faltante <= 0:
+            return 0
+        return int((faltante / disponible_mensual).quantize(Decimal("1."), rounding="ROUND_UP"))
+
+
+class Nota(models.Model):
+    titulo = models.CharField(max_length=120)
+    contenido = models.TextField(blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-creado_en"]
+        verbose_name = "Nota"
+        verbose_name_plural = "Notas"
+
+    def __str__(self):
+        return self.titulo
+
+
+class Recordatorio(models.Model):
+    titulo = models.CharField(max_length=120)
+    descripcion = models.TextField(blank=True)
+    fecha_recordatorio = models.DateField()
+    completado = models.BooleanField(default=False)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["completado", "fecha_recordatorio", "-creado_en"]
+        verbose_name = "Recordatorio"
+        verbose_name_plural = "Recordatorios"
+
+    def __str__(self):
+        return f"{self.titulo} ({self.fecha_recordatorio})"
+
+
+class HistoryEntry(models.Model):
+    TIPO = [
+        ("ingreso", "Ingreso"),
+        ("gasto", "Gasto"),
+        ("gasto_fijo", "Gasto fijo"),
+        ("deuda", "Deuda"),
+        ("pago_deuda", "Pago de deuda"),
+        ("deseo", "Deseo"),
+        ("nota", "Nota"),
+        ("recordatorio", "Recordatorio"),
+    ]
+
+    tipo = models.CharField(max_length=20, choices=TIPO)
+    referencia = models.CharField(max_length=255, blank=True)
+    monto = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    descripcion = models.CharField(max_length=255, blank=True)
+    fecha = models.DateField(default=timezone.localdate)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-fecha", "-creado_en"]
+        verbose_name = "Historial"
+        verbose_name_plural = "Historial"
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} · {self.referencia or self.descripcion}"

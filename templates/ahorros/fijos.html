@@ -9,7 +9,7 @@
     <div class="col-lg-4">
         <div class="card section-card p-3">
             <h5>Agregar gasto fijo</h5>
-            <form method="post" novalidate>
+            <form method="post" enctype="multipart/form-data" novalidate>
                 {% csrf_token %}
                 {% include "ahorros/_form.html" %}
                 <button class="btn btn-primary w-100" type="submit">Guardar</button>
