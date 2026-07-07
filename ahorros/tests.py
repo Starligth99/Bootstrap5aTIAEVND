@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.urls import reverse
 
 from .forms import DeudaForm, DeseoForm, GastoFijoForm, GastoForm, IngresoForm
 
@@ -65,3 +66,19 @@ class FormValidationTests(TestCase):
         form = IngresoForm()
         self.assertEqual(form.fields["fecha"].widget.input_type, "text")
         self.assertIn("dd/mm/yyyy", form.fields["fecha"].widget.attrs.get("placeholder", ""))
+
+    def test_export_excel_downloads_a_workbook(self):
+        response = self.client.get(reverse("ahorros:exportar_excel"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+    def test_import_template_downloads_a_workbook(self):
+        response = self.client.get(reverse("ahorros:plantilla_importacion"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )

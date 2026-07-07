@@ -1,15 +1,18 @@
 import calendar
 import json
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
+from io import BytesIO
 
 from django.contrib import messages
 from django.db.models import Sum
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+
+from openpyxl import Workbook
 
 from .forms import (
     DeseoForm,
@@ -62,6 +65,157 @@ def _ahorro_acumulado() -> Decimal:
         (d.saldo() for d in Deuda.objects.all()), Decimal("0")
     )
     return ingresos_tot - gastos_tot - saldos_deuda
+
+
+def _generar_excel_respuesta(nombre_archivo: str, workbook: Workbook) -> HttpResponse:
+    output = BytesIO()
+    workbook.save(output)
+    output.seek(0)
+    response = HttpResponse(output.read(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = f"attachment; filename={nombre_archivo}.xlsx"
+    return response
+
+
+def _normalizar_valor(valor):
+    if isinstance(valor, Decimal):
+        return float(valor)
+    if isinstance(valor, datetime):
+        if getattr(valor, "tzinfo", None) is not None:
+            valor = valor.astimezone(None).replace(tzinfo=None)
+        return valor.date() if valor.time() == datetime.min.time() else valor
+    if isinstance(valor, date) and not isinstance(valor, datetime):
+        return valor
+    if valor is None:
+        return ""
+    return valor
+
+
+def _agregar_hoja_con_datos(workbook: Workbook, nombre_hoja: str, columnas: list[tuple[str, str]], registros: list[dict]) -> None:
+    sheet = workbook.create_sheet(title=nombre_hoja)
+    for col_idx, (campo, titulo) in enumerate(columnas, start=1):
+        sheet.cell(row=1, column=col_idx, value=titulo)
+    for row_idx, registro in enumerate(registros, start=2):
+        for col_idx, (campo, _) in enumerate(columnas, start=1):
+            valor = _normalizar_valor(registro.get(campo))
+            sheet.cell(row=row_idx, column=col_idx, value=valor)
+
+
+def exportar_excel(request):
+    workbook = Workbook()
+    workbook.remove(workbook.active)
+
+    ingresos = list(
+        Ingreso.objects.all().values("fecha", "monto", "fuente", "nota", "creado_en")
+    )
+    gastos = list(
+        Gasto.objects.all().values("fecha", "monto", "categoria", "descripcion", "creado_en")
+    )
+    gastos_fijos = list(
+        GastoFijo.objects.all().values("nombre", "monto", "dia_pago", "activo", "nota")
+    )
+    deudas = list(
+        Deuda.objects.all().values("acreedor", "monto_original", "fecha", "plazo_meses", "nota")
+    )
+    pagos_deuda = list(
+        PagoDeuda.objects.all().values("deuda_id", "fecha", "monto", "nota")
+    )
+
+    resumen = [
+        {"concepto": "Ingresos totales", "valor": float(_sumar(Ingreso.objects.all()))},
+        {"concepto": "Gastos totales", "valor": float(_sumar(Gasto.objects.all()))},
+        {"concepto": "Gastos fijos totales", "valor": float(_sumar(GastoFijo.objects.all()))},
+        {"concepto": "Deudas registradas", "valor": Deuda.objects.count()},
+        {"concepto": "Pagos de deuda totales", "valor": float(_sumar(PagoDeuda.objects.all()))},
+    ]
+
+    _agregar_hoja_con_datos(
+        workbook,
+        "Resumen",
+        [("concepto", "Concepto"), ("valor", "Valor")],
+        resumen,
+    )
+    _agregar_hoja_con_datos(
+        workbook,
+        "Ingresos",
+        [("fecha", "Fecha"), ("monto", "Monto"), ("fuente", "Fuente"), ("nota", "Nota"), ("creado_en", "Creado en")],
+        ingresos,
+    )
+    _agregar_hoja_con_datos(
+        workbook,
+        "Gastos",
+        [("fecha", "Fecha"), ("monto", "Monto"), ("categoria", "Categoría"), ("descripcion", "Descripción"), ("creado_en", "Creado en")],
+        gastos,
+    )
+    _agregar_hoja_con_datos(
+        workbook,
+        "GastosFijos",
+        [("nombre", "Nombre"), ("monto", "Monto"), ("dia_pago", "Día de pago"), ("activo", "Activo"), ("nota", "Nota")],
+        gastos_fijos,
+    )
+    _agregar_hoja_con_datos(
+        workbook,
+        "Deudas",
+        [("acreedor", "Acreedor"), ("monto_original", "Monto original"), ("fecha", "Fecha"), ("plazo_meses", "Plazo meses"), ("nota", "Nota")],
+        deudas,
+    )
+    _agregar_hoja_con_datos(
+        workbook,
+        "PagosDeuda",
+        [("deuda_id", "ID deuda"), ("fecha", "Fecha"), ("monto", "Monto"), ("nota", "Nota")],
+        pagos_deuda,
+    )
+
+    return _generar_excel_respuesta("exportacion_general_finanzas", workbook)
+
+
+def plantilla_importacion(request):
+    workbook = Workbook()
+    workbook.remove(workbook.active)
+
+    _agregar_hoja_con_datos(
+        workbook,
+        "Instrucciones",
+        [("campo", "Campo"), ("descripcion", "Descripción")],
+        [
+            {"campo": "tipo", "descripcion": "Ingrese ingreso, gasto, gasto_fijo, deuda o pago_deuda"},
+            {"campo": "fecha", "descripcion": "Fecha en formato YYYY-MM-DD"},
+            {"campo": "monto", "descripcion": "Monto numérico con decimales"},
+            {"campo": "descripcion", "descripcion": "Texto libre para notas o detalle"},
+            {"campo": "referencia", "descripcion": "Nombre del acreedor, fuente o categoría"},
+        ],
+    )
+    _agregar_hoja_con_datos(
+        workbook,
+        "Ingresos",
+        [("fecha", "Fecha"), ("monto", "Monto"), ("fuente", "Fuente"), ("nota", "Nota")],
+        [],
+    )
+    _agregar_hoja_con_datos(
+        workbook,
+        "Gastos",
+        [("fecha", "Fecha"), ("monto", "Monto"), ("categoria", "Categoría"), ("descripcion", "Descripción")],
+        [],
+    )
+    _agregar_hoja_con_datos(
+        workbook,
+        "GastosFijos",
+        [("nombre", "Nombre"), ("monto", "Monto"), ("dia_pago", "Día de pago"), ("activo", "Activo"), ("nota", "Nota")],
+        [],
+    )
+    _agregar_hoja_con_datos(
+        workbook,
+        "Deudas",
+        [("acreedor", "Acreedor"), ("monto_original", "Monto original"), ("fecha", "Fecha"), ("plazo_meses", "Plazo meses"), ("nota", "Nota")],
+        [],
+    )
+    _agregar_hoja_con_datos(
+        workbook,
+        "PagosDeuda",
+        [("deuda_id", "ID deuda"), ("fecha", "Fecha"), ("monto", "Monto"), ("nota", "Nota")],
+        [],
+    )
+
+    return _generar_excel_respuesta("plantilla_importacion_finanzas", workbook)
 
 
 def dashboard(request):

@@ -1,5 +1,6 @@
 asgiref==3.11.1
 Django==6.0.4
+openpyxl==3.1.5
 Pillow==10.1.1
 sqlparse==0.5.5
 tzdata==2026.1

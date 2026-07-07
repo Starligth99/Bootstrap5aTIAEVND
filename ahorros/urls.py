@@ -6,6 +6,8 @@ app_name = "ahorros"
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
+    path("exportar/excel/", views.exportar_excel, name="exportar_excel"),
+    path("importar/plantilla/", views.plantilla_importacion, name="plantilla_importacion"),
     # Ingresos
     path("ingresos/", views.ingresos_lista, name="ingresos"),
     path(

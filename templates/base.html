@@ -38,7 +38,9 @@
                 <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'recordatorios' %}active{% endif %}" href="{% url 'ahorros:recordatorios' %}">Recordatorios</a></li>
                 <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'historial' %}active{% endif %}" href="{% url 'ahorros:historial' %}">Historial</a></li>
             </ul>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <a class="btn btn-outline-light btn-sm" href="{% url 'ahorros:exportar_excel' %}">Exportar Excel</a>
+                <a class="btn btn-outline-light btn-sm" href="{% url 'ahorros:plantilla_importacion' %}">Plantilla importación</a>
                 <button class="btn btn-outline-light btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#quickAccess" aria-controls="quickAccess">
                     Accesos rápidos
                 </button>

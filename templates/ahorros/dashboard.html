@@ -19,6 +19,23 @@
     </div>
 </div>
 
+<div class="card section-card p-3 mb-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-2">
+        <div>
+            <h5 class="mb-1">Importar y exportar finanzas</h5>
+            <p class="text-muted mb-0">Descarga un archivo general con ingresos, gastos, gastos fijos, deudas y pagos. No incluye deseos, notas ni recordatorios.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-outline-success btn-sm" href="{% url 'ahorros:exportar_excel' %}">Exportar Excel</a>
+            <a class="btn btn-outline-secondary btn-sm" href="{% url 'ahorros:plantilla_importacion' %}">Descargar plantilla</a>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-end flex-wrap mb-4">
+    <div>
+</div>
+
     <div class="row g-3 mb-4">
         <div class="col-12">
             <div class="card section-card p-3">
