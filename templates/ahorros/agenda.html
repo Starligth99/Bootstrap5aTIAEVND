@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Agenda{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-end flex-wrap mb-4 gap-3">
+    <div>
+        <h1 class="h3 mb-1 fw-bold">Agenda</h1>
+        <p class="mb-0" style="color: var(--muted);">Planifica notas y recordatorios para tu mes.</p>
+    </div>
+    <div class="btn-group shadow-sm">
+        <a class="btn btn-outline-primary" href="?year={{ prev_year }}&month={{ prev_month }}">← Mes anterior</a>
+        <a class="btn btn-outline-primary" href="?year={{ next_year }}&month={{ next_month }}">Mes siguiente →</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card section-card p-3 mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="mb-1">{{ titulo_mes }}</h5>
+                    <p class="mb-0" style="color: var(--muted);">Haz clic en un día para ver las notas y recordatorios del mes.</p>
+                </div>
+                <div>
+                    <span class="badge bg-secondary">Hoy: {{ hoy|date:"d M Y" }}</span>
+                </div>
+            </div>
+            <table class="table agenda-calendar mb-0">
+                <thead>
+                    <tr>
+                        <th>Lun</th>
+                        <th>Mar</th>
+                        <th>Mié</th>
+                        <th>Jue</th>
+                        <th>Vie</th>
+                        <th>Sáb</th>
+                        <th>Dom</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for semana in semanas %}
+                        <tr>
+                            {% for dia in semana %}
+                                <td class="{% if dia == hoy %}day-today{% endif %}">
+                                    <div class="day-number">{{ dia.day }}</div>
+                                    <div class="day-events">
+                                        {% for evento in eventos %}
+                                            {% if evento.date == dia %}
+                                                <div class="event-item event-{{ evento.type }}{% if evento.completed %} event-completed{% endif %}" title="{{ evento.title }}{% if evento.subtitle %} — {{ evento.subtitle }}{% endif %}">
+                                                    <span class="event-icon">{% if evento.type == 'recordatorio' %}⏰{% else %}📝{% endif %}</span>
+                                                    <span class="event-text">{{ evento.title|truncatechars:22 }}</span>
+                                                    {% if evento.type == 'recordatorio' and evento.completed %}
+                                                        <span class="event-check">✓</span>
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card section-card p-3">
+            <h5 class="mb-3">Eventos del mes</h5>
+            {% if eventos %}
+                <ul class="list-group list-group-flush">
+                    {% for evento in eventos|dictsort:"date" %}
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-bold">{{ evento.title }}</div>
+                                <div class="small text-muted">
+                                    {{ evento.date|date:"d M Y" }} · {{ evento.type|title }}
+                                </div>
+                                {% if evento.subtitle %}
+                                    <div class="mt-1 text-muted small">{{ evento.subtitle|truncatechars:80 }}</div>
+                                {% endif %}
+                            </div>
+                            {% if evento.type == 'recordatorio' and evento.completed == False %}
+                                <span class="badge bg-warning text-dark">Pendiente</span>
+                            {% elif evento.type == 'recordatorio' and evento.completed == True %}
+                                <span class="badge bg-success">Completado</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="mb-0 text-muted">No hay eventos para este mes.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card section-card p-3 mb-3">
+            <h5 class="mb-3">Agregar nota</h5>
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="nota">
+                {% include "ahorros/_form.html" with form=nota_form %}
+                <button class="btn btn-outline-primary w-100" type="submit">Guardar nota</button>
+            </form>
+        </div>
+
+        <div class="card section-card p-3 mb-3">
+            <h5 class="mb-3">Agregar recordatorio</h5>
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="recordatorio">
+                {% include "ahorros/_form.html" with form=recordatorio_form %}
+                <button class="btn btn-outline-warning w-100" type="submit">Guardar recordatorio</button>
+            </form>
+        </div>
+
+        <div class="card section-card p-3">
+            <h5 class="mb-3">Próximos recordatorios</h5>
+            {% if proximos %}
+                <ul class="list-group list-group-flush">
+                    {% for rec in proximos %}
+                        <li class="list-group-item">
+                            <strong>{{ rec.titulo }}</strong><br>
+                            <small class="text-muted">{{ rec.fecha_recordatorio|date:"d M Y" }}</small>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="mb-0 text-muted">No hay recordatorios próximos.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

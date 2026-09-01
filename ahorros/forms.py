@@ -21,7 +21,7 @@ class _BootstrapFormMixin:
                 widget.input_type = "text"
                 widget.attrs.setdefault("placeholder", "dd/mm/yyyy")
                 widget.attrs.setdefault("inputmode", "numeric")
-                widget.attrs.setdefault("pattern", r"\\d{2}/\\d{2}/\\d{4}")
+                widget.attrs.setdefault("pattern", r"\d{2}/\d{2}/\d{4}")
 
 
 class IngresoForm(_BootstrapFormMixin, forms.ModelForm):

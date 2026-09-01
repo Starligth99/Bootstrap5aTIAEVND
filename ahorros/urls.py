@@ -38,4 +38,6 @@ urlpatterns = [
     path("notas/<int:pk>/borrar/", views.nota_borrar, name="nota_borrar"),
     path("recordatorios/", views.recordatorios_lista, name="recordatorios"),
     path("recordatorios/<int:pk>/completar/", views.recordatorio_completar, name="recordatorio_completar"),
+    path("agenda/", views.agenda, name="agenda"),
     path("historial/", views.historial, name="historial"),]
+

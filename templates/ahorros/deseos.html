@@ -29,64 +29,92 @@
     </div>
     <div class="col-lg-8">
         <div class="card section-card p-3">
-            <h5>Mis deseos</h5>
-            <table class="table table-sm align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th>Deseo</th>
-                        <th class="text-end">Precio</th>
-                        <th>Estado</th>
-                        <th class="text-end"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in objetos %}
-                        {% with d=item.obj %}
-                        <tr {% if d.comprado %}class="table-light text-muted"{% endif %}>
-                            <td>
-                                <strong>{{ d.nombre }}</strong>
-                                <span class="badge bg-{{ d.prioridad|yesno:"danger,warning,secondary" }} ms-1">{{ d.get_prioridad_display }}</span>
-                                <div class="mt-2">
-                                    {% if d.nota %}<div class="small text-muted">{{ d.nota }}</div>{% endif %}
-                                    {% if d.imagen %}
-                                        <div class="mt-2 d-flex align-items-start gap-2">
-                                            <img src="{{ d.imagen.url }}" class="img-fluid rounded" style="max-height:120px; max-width:160px; object-fit:cover;" alt="Imagen del deseo">
-                                        </div>
-                                    {% endif %}
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3 mb-3">
+                <div>
+                    <h5>Mis deseos</h5>
+                    <p class="text-muted mb-0">Filtra por prioridad y revisa tu avance de ahorro.</p>
+                </div>
+                <div class="btn-group" role="group" aria-label="Filtro de prioridad">
+                    <a href="?prioridad=todas" class="btn btn-sm {% if prioridad_seleccionada == 'todas' %}btn-primary{% else %}btn-outline-primary{% endif %}">Todas</a>
+                    <a href="?prioridad=alta" class="btn btn-sm {% if prioridad_seleccionada == 'alta' %}btn-danger{% else %}btn-outline-danger{% endif %}">Alta</a>
+                    <a href="?prioridad=media" class="btn btn-sm {% if prioridad_seleccionada == 'media' %}btn-warning{% else %}btn-outline-warning{% endif %}">Media</a>
+                    <a href="?prioridad=baja" class="btn btn-sm {% if prioridad_seleccionada == 'baja' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">Baja</a>
+                </div>
+            </div>
+            <div class="row row-cols-1 row-cols-md-2 g-3">
+                {% for item in objetos %}
+                    {% with d=item.obj %}
+                    <div class="col">
+                        <div class="card deseo-card h-100 transition">
+                            {% if d.imagen %}
+                                <img src="{{ d.imagen.url }}" class="card-img-top objeto-imagen" alt="Imagen del deseo">
+                            {% else %}
+                                <div class="card-img-top placeholder-imagen d-flex align-items-center justify-content-center text-muted">
+                                    <span class="small">Sin imagen</span>
                                 </div>
-                                {% if not d.comprado %}
-                                    <div class="small text-muted mt-2">Necesitas {{ item.meses }} meses con tu ahorro mensual.</div>
+                            {% endif %}
+                            <div class="card-body d-flex flex-column">
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                    <div>
+                                        <h6 class="card-title mb-1">{{ d.nombre }}</h6>
+                                        <div class="small text-muted">${{ d.precio|floatformat:2 }}</div>
+                                    </div>
+                                    <span class="badge {% if d.prioridad == 'alta' %}bg-danger{% elif d.prioridad == 'media' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ d.get_prioridad_display }}</span>
+                                </div>
+                                {% if d.nota %}
+                                    <p class="card-text small text-muted mb-2">{{ d.nota }}</p>
                                 {% endif %}
-                            </td>
-                            <td class="text-end">${{ d.precio|floatformat:2 }}</td>
-                            <td>
-                                {% if d.comprado %}
-                                    <span class="badge bg-success">Comprado · {{ d.fecha_compra|date:"d M" }}</span>
-                                {% elif item.alcanza %}
-                                    <span class="badge bg-success">¡Te alcanza! 🎉</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">Te faltan <strong>${{ item.falta|floatformat:2 }}</strong></span>
-                                {% endif %}
-                            </td>
-                            <td class="text-end">
-                                {% if not d.comprado %}
-                                    <form method="post" action="{% url 'ahorros:deseo_comprar' d.pk %}" class="d-inline" onsubmit="return confirm('¿Marcar como comprado? Esto creará un gasto de ${{ d.precio }}.');">
-                                        {% csrf_token %}
-                                        <button class="btn btn-sm btn-success" {% if not item.alcanza %}title="No te alcanza todavía, pero puedes marcarlo igual"{% endif %}>Comprar</button>
-                                    </form>
-                                {% endif %}
-                                <form method="post" action="{% url 'ahorros:deseo_borrar' d.pk %}" class="d-inline" onsubmit="return confirm('¿Eliminar deseo?');">
-                                    {% csrf_token %}
-                                    <button class="btn btn-sm btn-outline-danger">✕</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endwith %}
-                    {% empty %}
-                        <tr><td colspan="4" class="text-muted text-center py-3">Aún no tienes deseos registrados.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                                <div class="mt-auto">
+                                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                        {% if d.comprado %}
+                                            <span class="badge bg-success">Comprado · {{ d.fecha_compra|date:"d M" }}</span>
+                                        {% elif item.alcanza %}
+                                            <span class="badge bg-success">¡Te alcanza! 🎉</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Faltan ${{ item.falta|floatformat:2 }}</span>
+                                        {% endif %}
+                                        <span class="small text-muted">{{ item.meses }} meses</span>
+                                    </div>
+                                    <div class="collapse" id="detalle-{{ d.pk }}">
+                                        <div class="mb-2">
+                                            <div class="d-flex justify-content-between align-items-center small mb-1">
+                                                <span>Progreso con ahorros</span>
+                                                <strong>{{ item.progreso }}%</strong>
+                                            </div>
+                                            <div class="progress" style="height: 0.9rem;">
+                                                <div class="progress-bar" role="progressbar" style="width: {{ item.progreso }}%;" aria-valuenow="{{ item.progreso }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+                                        </div>
+                                        {% if not d.comprado %}
+                                            <div class="small text-muted">Estimado ahorro actual: ${{ ahorro_acumulado|floatformat:2 }} / ${{ d.precio|floatformat:2 }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="d-flex justify-content-between gap-2 mt-3">
+                                        <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#detalle-{{ d.pk }}" aria-expanded="false" aria-controls="detalle-{{ d.pk }}">Ver progreso</button>
+                                        <div class="d-flex gap-1">
+                                            {% if not d.comprado %}
+                                                <form method="post" action="{% url 'ahorros:deseo_comprar' d.pk %}" class="d-inline" onsubmit="return confirm('¿Marcar como comprado? Esto creará un gasto de ${{ d.precio }}.');">
+                                                    {% csrf_token %}
+                                                    <button class="btn btn-sm btn-success" {% if not item.alcanza %}title="No te alcanza todavía, pero puedes marcarlo igual"{% endif %}>Comprar</button>
+                                                </form>
+                                            {% endif %}
+                                            <form method="post" action="{% url 'ahorros:deseo_borrar' d.pk %}" class="d-inline" onsubmit="return confirm('¿Eliminar deseo?');">
+                                                {% csrf_token %}
+                                                <button class="btn btn-sm btn-outline-danger">✕</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endwith %}
+                {% empty %}
+                    <div class="col-12 text-center py-4 text-muted">
+                        Aún no tienes deseos registrados.
+                    </div>
+                {% endfor %}
+            </div>
         </div>
     </div>
 </div>

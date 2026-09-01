@@ -1,10 +1,11 @@
 import calendar
 import json
 from datetime import date, datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, ROUND_UP
 from io import BytesIO
 
 from django.contrib import messages
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Sum
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
@@ -57,14 +58,13 @@ def _sumar(qs, campo: str = "monto") -> Decimal:
 def _ahorro_acumulado() -> Decimal:
     """Dinero que tienes disponible hoy considerando toda tu historia.
 
-    ingresos totales − gastos totales − saldos pendientes de deudas.
+    ingresos totales − gastos totales − pagos realizados hacia deudas.
+    Las deudas nuevas no reducen el ahorro hasta que se registren pagos.
     """
     ingresos_tot = _sumar(Ingreso.objects.all())
     gastos_tot = _sumar(Gasto.objects.all())
-    saldos_deuda = sum(
-        (d.saldo() for d in Deuda.objects.all()), Decimal("0")
-    )
-    return ingresos_tot - gastos_tot - saldos_deuda
+    pagos_deuda_tot = _sumar(PagoDeuda.objects.all())
+    return ingresos_tot - gastos_tot - pagos_deuda_tot
 
 
 def _generar_excel_respuesta(nombre_archivo: str, workbook: Workbook) -> HttpResponse:
@@ -104,68 +104,47 @@ def exportar_excel(request):
     workbook = Workbook()
     workbook.remove(workbook.active)
 
-    ingresos = list(
-        Ingreso.objects.all().values("fecha", "monto", "fuente", "nota", "creado_en")
-    )
-    gastos = list(
-        Gasto.objects.all().values("fecha", "monto", "categoria", "descripcion", "creado_en")
-    )
-    gastos_fijos = list(
-        GastoFijo.objects.all().values("nombre", "monto", "dia_pago", "activo", "nota")
-    )
-    deudas = list(
-        Deuda.objects.all().values("acreedor", "monto_original", "fecha", "plazo_meses", "nota")
-    )
-    pagos_deuda = list(
-        PagoDeuda.objects.all().values("deuda_id", "fecha", "monto", "nota")
-    )
-
-    resumen = [
-        {"concepto": "Ingresos totales", "valor": float(_sumar(Ingreso.objects.all()))},
-        {"concepto": "Gastos totales", "valor": float(_sumar(Gasto.objects.all()))},
-        {"concepto": "Gastos fijos totales", "valor": float(_sumar(GastoFijo.objects.all()))},
-        {"concepto": "Deudas registradas", "valor": Deuda.objects.count()},
-        {"concepto": "Pagos de deuda totales", "valor": float(_sumar(PagoDeuda.objects.all()))},
-    ]
-
     _agregar_hoja_con_datos(
         workbook,
         "Resumen",
         [("concepto", "Concepto"), ("valor", "Valor")],
-        resumen,
+        [
+            {"concepto": "Instrucciones", "valor": "Usa esta plantilla para registrar datos nuevos."},
+            {"concepto": "No se exportan registros existentes", "valor": "Solo se deja la estructura para cargar información nueva."},
+        ],
     )
     _agregar_hoja_con_datos(
         workbook,
         "Ingresos",
-        [("fecha", "Fecha"), ("monto", "Monto"), ("fuente", "Fuente"), ("nota", "Nota"), ("creado_en", "Creado en")],
-        ingresos,
+        [("fecha", "Fecha"), ("monto", "Monto"), ("fuente", "Fuente"), ("nota", "Nota")],
+        [],
     )
     _agregar_hoja_con_datos(
         workbook,
         "Gastos",
-        [("fecha", "Fecha"), ("monto", "Monto"), ("categoria", "Categoría"), ("descripcion", "Descripción"), ("creado_en", "Creado en")],
-        gastos,
+        [("fecha", "Fecha"), ("monto", "Monto"), ("categoria", "Categoría"), ("descripcion", "Descripción")],
+        [],
     )
     _agregar_hoja_con_datos(
         workbook,
         "GastosFijos",
         [("nombre", "Nombre"), ("monto", "Monto"), ("dia_pago", "Día de pago"), ("activo", "Activo"), ("nota", "Nota")],
-        gastos_fijos,
+        [],
     )
     _agregar_hoja_con_datos(
         workbook,
         "Deudas",
         [("acreedor", "Acreedor"), ("monto_original", "Monto original"), ("fecha", "Fecha"), ("plazo_meses", "Plazo meses"), ("nota", "Nota")],
-        deudas,
+        [],
     )
     _agregar_hoja_con_datos(
         workbook,
         "PagosDeuda",
         [("deuda_id", "ID deuda"), ("fecha", "Fecha"), ("monto", "Monto"), ("nota", "Nota")],
-        pagos_deuda,
+        [],
     )
 
-    return _generar_excel_respuesta("exportacion_general_finanzas", workbook)
+    return _generar_excel_respuesta("plantilla_importacion_finanzas", workbook)
 
 
 def plantilla_importacion(request):
@@ -543,21 +522,44 @@ def deseos_lista(request):
     disponible_mensual = ingresos_mes - gastos_mes - fijos_pendientes_total
 
     ahorro = _ahorro_acumulado()
+    prioridad_seleccionada = request.GET.get("prioridad", "todas")
     deseos = Deseo.objects.all()
+    if prioridad_seleccionada in {"alta", "media", "baja"}:
+        deseos = deseos.filter(prioridad=prioridad_seleccionada)
+
     objetos = []
     for d in deseos:
+        if d.comprado:
+            progreso = 100
+        elif d.precio > 0:
+            progreso = int(
+                min(
+                    100,
+                    (ahorro / d.precio * 100).quantize(Decimal("1."), rounding=ROUND_UP),
+                )
+            )
+        else:
+            progreso = 0
+
+        progreso = max(0, progreso)
         objetos.append(
             {
                 "obj": d,
                 "alcanza": d.alcanza(ahorro),
                 "falta": d.falta(ahorro),
                 "meses": d.meses_para_ahorrar(ahorro, disponible_mensual),
+                "progreso": progreso,
             }
         )
     return render(
         request,
         "ahorros/deseos.html",
-        {"form": form, "objetos": objetos, "ahorro_acumulado": ahorro},
+        {
+            "form": form,
+            "objetos": objetos,
+            "ahorro_acumulado": ahorro,
+            "prioridad_seleccionada": prioridad_seleccionada,
+        },
     )
 
 
@@ -654,6 +656,114 @@ def recordatorios_lista(request):
     )
 
 
+def agenda(request):
+    hoy = timezone.localdate()
+    year = request.GET.get("year")
+    month = request.GET.get("month")
+    try:
+        year = int(year) if year else hoy.year
+        month = int(month) if month else hoy.month
+        fecha_actual = date(year, month, 1)
+    except (TypeError, ValueError):
+        fecha_actual = hoy.replace(day=1)
+        year = fecha_actual.year
+        month = fecha_actual.month
+
+    primer_dia_del_mes = fecha_actual
+    ultimo_dia_del_mes = fecha_actual.replace(day=calendar.monthrange(year, month)[1])
+    mes_anterior = primer_dia_del_mes - timedelta(days=1)
+    mes_siguiente = ultimo_dia_del_mes + timedelta(days=1)
+
+    nota_form = NotaForm()
+    recordatorio_form = RecordatorioForm()
+    if request.method == "POST":
+        form_type = request.POST.get("form_type")
+        if form_type == "nota":
+            nota_form = NotaForm(request.POST)
+            if nota_form.is_valid():
+                nota = nota_form.save()
+                HistoryEntry.objects.create(
+                    tipo="nota",
+                    referencia=nota.titulo,
+                    descripcion=nota.contenido[:255],
+                    fecha=nota.creado_en.date(),
+                )
+                messages.success(request, "Nota guardada en la agenda.")
+                return redirect(
+                    reverse("ahorros:agenda") + f"?year={year}&month={month}"
+                )
+        elif form_type == "recordatorio":
+            recordatorio_form = RecordatorioForm(request.POST)
+            if recordatorio_form.is_valid():
+                recordatorio = recordatorio_form.save()
+                HistoryEntry.objects.create(
+                    tipo="recordatorio",
+                    referencia=recordatorio.titulo,
+                    descripcion=recordatorio.descripcion[:255],
+                    fecha=recordatorio.fecha_recordatorio,
+                )
+                messages.success(request, "Recordatorio guardado en la agenda.")
+                return redirect(
+                    reverse("ahorros:agenda") + f"?year={year}&month={month}"
+                )
+
+    calendario = calendar.Calendar(firstweekday=0)
+    semanas = calendario.monthdatescalendar(year, month)
+
+    recordatorios = Recordatorio.objects.filter(
+        fecha_recordatorio__year=year, fecha_recordatorio__month=month
+    )
+    notas = Nota.objects.filter(
+        creado_en__year=year, creado_en__month=month
+    )
+
+    eventos = []
+    for rec in recordatorios:
+        eventos.append(
+            {
+                "date": rec.fecha_recordatorio,
+                "title": rec.titulo,
+                "subtitle": rec.descripcion,
+                "type": "recordatorio",
+                "completed": rec.completado,
+            }
+        )
+    for nota in notas:
+        eventos.append(
+            {
+                "date": nota.creado_en.date(),
+                "title": nota.titulo,
+                "subtitle": nota.contenido,
+                "type": "nota",
+                "completed": None,
+            }
+        )
+
+    proximos = list(
+        Recordatorio.objects.filter(
+            completado=False, fecha_recordatorio__gte=hoy
+        ).order_by("fecha_recordatorio")[:5]
+    )
+
+    contexto = {
+        "hoy": hoy,
+        "year": year,
+        "month": month,
+        "fecha_actual": fecha_actual,
+        "semanas": semanas,
+        "eventos": eventos,
+        "nota_form": nota_form,
+        "recordatorio_form": recordatorio_form,
+        "prev_year": mes_anterior.year,
+        "prev_month": mes_anterior.month,
+        "next_year": mes_siguiente.year,
+        "next_month": mes_siguiente.month,
+        "proximos": proximos,
+        "titulo_mes": fecha_actual.strftime("%B %Y"),
+    }
+    return render(request, "ahorros/agenda.html", contexto)
+
+
 @require_POST
 def recordatorio_completar(request, pk):
     recordatorio = get_object_or_404(Recordatorio, pk=pk)
@@ -664,8 +774,15 @@ def recordatorio_completar(request, pk):
 
 
 def historial(request):
+    lista = HistoryEntry.objects.all().order_by("-fecha", "-id")
+    paginator = Paginator(lista, 50)
+    page_number = request.GET.get("page")
+    try:
+        page_obj = paginator.get_page(page_number)
+    except (PageNotAnInteger, EmptyPage):
+        page_obj = paginator.get_page(1)
     return render(
         request,
         "ahorros/historial.html",
-        {"objetos": HistoryEntry.objects.all()},
+        {"objetos": page_obj, "page_obj": page_obj},
     )
